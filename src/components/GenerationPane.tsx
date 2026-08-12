@@ -1,27 +1,28 @@
 // The generation window. Cumulative evidence is the background wash (read
 // against the decade scale at left); each committed token is tinted by its
-// own r; the next token is picked from a dropdown at the caret.
+// own contribution; the next token is picked from a dropdown at the caret.
 
 import { useLayoutEffect, useRef, useState } from 'react';
 import CandidateList from './CandidateList';
 import type { CommittedToken } from '../hooks/useGeneration';
 import type { Candidate } from '../lib/candidates';
-import { EOS } from '../lib/trigram';
 import { washColor, washFraction } from '../lib/wash';
 
 interface GenerationPaneProps {
-  prompt: string | null;
+  promptDisplay: string;
   tokens: CommittedToken[];
   candidates: Candidate[];
   log10InvP: number;
   statusText: string | null;
+  notice: string | null;
+  joiner: 'space' | 'raw';
 }
 
 const DECADES = [0, 1, 2, 3, 4, 5, 6];
 const LIST_WIDTH = 176;
 const noSpaceBefore = (text: string) => /^[.,!?;:]$/.test(text);
 
-export default function GenerationPane({ prompt, tokens, candidates, log10InvP, statusText }: GenerationPaneProps) {
+export default function GenerationPane({ promptDisplay, tokens, candidates, log10InvP, statusText, notice, joiner }: GenerationPaneProps) {
   const [hover, setHover] = useState<number | null>(null);
   const flowRef = useRef<HTMLDivElement | null>(null);
   const caretRef = useRef<HTMLSpanElement | null>(null);
@@ -57,21 +58,22 @@ export default function GenerationPane({ prompt, tokens, candidates, log10InvP, 
           />
         </div>
       </div>
-      <div ref={flowRef} className='relative flex-1 p-5 pb-44 font-mono text-[15px] leading-8'>
+      <div ref={flowRef} className='relative flex-1 whitespace-pre-wrap p-5 pb-44 font-mono text-[15px] leading-8'>
         {statusText ? (
           <span className='text-ink/50'>{statusText}</span>
-        ) : !prompt ? (
+        ) : !promptDisplay ? (
           <span className='text-ink/40'>Type a prompt above to start generating…</span>
         ) : tokens.length === 0 ? (
           <span className='text-ink/40'>Generating…</span>
         ) : (
           <>
+            <span className='text-ink/50'>{promptDisplay}</span>
             {tokens.map((token, i) =>
-              token.text === EOS ? (
-                <span key={i} className='text-ink/30'> ¶<br /></span>
+              token.text === '<eos>' ? (
+                <span key={i} className='text-ink/30'> ¶{'\n'}</span>
               ) : (
                 <span key={i}>
-                  {!noSpaceBefore(token.text) && ' '}
+                  {joiner === 'space' && !noSpaceBefore(token.text) && ' '}
                   <span
                     className='token-in cursor-default rounded-xs'
                     style={{ backgroundColor: `rgba(168, 81, 75, ${Math.min(0.5, 0.11 * token.contribution).toFixed(3)})` }}
@@ -95,6 +97,11 @@ export default function GenerationPane({ prompt, tokens, candidates, log10InvP, 
           </>
         )}
       </div>
+      {notice && (
+        <div className='absolute bottom-2 left-10 z-20 max-w-md rounded border border-ink/10 bg-white/90 px-2 py-1 font-mono text-[10px] text-ink/70'>
+          ⚠ {notice}
+        </div>
+      )}
       {hovered && (
         <div className='pointer-events-none absolute bottom-2 right-3 z-20 rounded border border-ink/10 bg-white/90 px-2 py-1 font-mono text-[10px] tabular-nums text-ink/80'>
           r {hovered.r.toFixed(3)} · p {hovered.p.toFixed(3)} · −ln(1−r) {hovered.contribution.toFixed(2)}

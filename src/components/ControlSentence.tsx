@@ -1,8 +1,12 @@
 // The instrument's parameters live in this sentence, not in a toolbar.
+// The model itself is one of the choices.
 
 import ScrubNumber from './ScrubNumber';
+import { API_MODELS } from '../lib/apiModels';
 
 interface ControlSentenceProps {
+  backend: string;
+  onBackend: (id: string) => void;
   k: number;
   onK: (k: number) => void;
   temperature: number;
@@ -13,10 +17,25 @@ interface ControlSentenceProps {
   onNewKey: () => void;
 }
 
-export default function ControlSentence({ k, onK, temperature, onTemperature, speed, onSpeed, keyHex, onNewKey }: ControlSentenceProps) {
+export default function ControlSentence({ backend, onBackend, k, onK, temperature, onTemperature, speed, onSpeed, keyHex, onNewKey }: ControlSentenceProps) {
+  const isApi = backend !== 'trigram';
   return (
     <p className='max-w-prose text-[15px] leading-7 text-ink/75'>
-      The model emits{' '}
+      The{' '}
+      <select
+        value={backend}
+        onChange={(e) => onBackend(e.target.value)}
+        aria-label='language model'
+        className='cursor-pointer appearance-none border-b border-dashed border-accent/60 bg-transparent font-mono text-accent'
+      >
+        <option value='trigram'>trigram (local)</option>
+        {API_MODELS.map((m) => (
+          <option key={m.id} value={m.id}>
+            {m.label}
+          </option>
+        ))}
+      </select>{' '}
+      model emits{' '}
       <ScrubNumber label='speed' value={speed} min={2} max={20} step={1} pixelsPerStep={10} onChange={onSpeed} format={(v) => `${v} tokens`} />{' '}
       a second at temperature{' '}
       <ScrubNumber label='temperature' value={temperature} min={0.1} max={1.5} step={0.05} onChange={onTemperature} format={(v) => v.toFixed(2)} />
@@ -30,7 +49,8 @@ export default function ControlSentence({ k, onK, temperature, onTemperature, sp
       >
         (new key)
       </button>{' '}
-      into the randomness that picks the next word.{' '}
+      into the randomness that picks the next word.
+      {isApi && ' API models reveal only their top-20 candidates, so sampling is distortion-free within that set.'}{' '}
       <span className='text-[12px] text-ink/40'>Drag the blue numbers.</span>
     </p>
   );

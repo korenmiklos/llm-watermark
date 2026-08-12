@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { prepareModel, probabilities, knownIds, tokenize } from '../src/lib/trigram';
+import { prepareModel, probabilities, knownIds, tokenize, trigramSource } from '../src/lib/trigram';
 import type { ModelJson } from '../src/lib/trigram';
 
 const json: ModelJson = {
@@ -35,6 +35,15 @@ describe('trigram', () => {
     expect(cold[3]).toBeGreaterThan(base[3]);
     expect(hot[3]).toBeLessThan(base[3]);
     expect([...cold].reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
+  });
+
+  it('exposes the full vocabulary as a ProbabilitySource', async () => {
+    const source = trigramSource(prepareModel(json));
+    const dist = await source.next('a b', ['a'], 1);
+    expect(dist.tokens).toEqual(json.vocab);
+    expect(dist.truncated).toBe(false);
+    expect([...dist.probs].reduce((s, p) => s + p, 0)).toBeCloseTo(1, 12);
+    expect(dist.probs[0]).toBe(0); // <bos> never emitted
   });
 
   it('tokenizes words and punctuation, dropping OOV on prompt seeding', () => {

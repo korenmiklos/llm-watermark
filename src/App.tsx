@@ -38,7 +38,11 @@ export default function App() {
         <a className='underline decoration-ink/25 underline-offset-2 hover:text-accent' href='https://huggingface.co/datasets/roneneldan/TinyStories'>
           roneneldan/TinyStories
         </a>{' '}
-        (CDLA-Sharing-1.0) · Watermark scheme: Aaronson (2022) · Everything runs in this page — nothing is sent anywhere.
+        (CDLA-Sharing-1.0) · Watermark scheme: Aaronson (2022) · Everything runs in this page — nothing is sent anywhere ·{' '}
+        More AI × science:{' '}
+        <a className='underline decoration-ink/25 underline-offset-2 hover:text-accent' href='https://the9x.ac'>
+          the9x.ac
+        </a>
       </footer>
     </div>
   );

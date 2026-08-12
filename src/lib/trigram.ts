@@ -1,6 +1,8 @@
 // Model loading and interpolated probabilities. The trigram order (2 tokens
 // of model context) and the watermark window k are unrelated — never tie them.
 
+import type { ProbabilitySource } from './source';
+
 export const BOS = '<bos>';
 export const EOS = '<eos>';
 
@@ -81,4 +83,24 @@ export function knownIds(model: TrigramModel, text: string): number[] {
   return tokenize(text)
     .map((t) => index.get(t))
     .filter((id): id is number => id !== undefined);
+}
+
+// The trigram model as a ProbabilitySource: the full vocabulary every step.
+export function trigramSource(model: TrigramModel): ProbabilitySource {
+  const index = new Map(model.vocab.map((t, i) => [t, i]));
+  return {
+    id: 'trigram',
+    label: 'trigram (local)',
+    joiner: 'space',
+    async next(promptText, generated, temperature) {
+      const context = [
+        ...knownIds(model, promptText),
+        ...generated.map((t) => index.get(t) ?? model.bosId),
+      ];
+      const w2 = context.length >= 1 ? context[context.length - 1] : model.bosId;
+      const w1 = context.length >= 2 ? context[context.length - 2] : model.bosId;
+      const probs = probabilities(model, w1, w2, temperature);
+      return { tokens: model.vocab, probs, truncated: false };
+    },
+  };
 }

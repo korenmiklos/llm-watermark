@@ -1,9 +1,10 @@
-// Synthetic models and deterministic keys so the acceptance tests are
-// reproducible and independent of the downloaded corpus.
+// Synthetic sources and deterministic keys so the acceptance tests are
+// reproducible and independent of any downloaded corpus.
 
 import { generate } from '../src/lib/generate';
 import { sampleWatermarked } from '../src/lib/sampler';
-import { prepareModel } from '../src/lib/trigram';
+import type { ProbabilitySource } from '../src/lib/source';
+import { prepareModel, trigramSource } from '../src/lib/trigram';
 import type { ModelJson, TrigramModel } from '../src/lib/trigram';
 
 export const VOCAB_SIZE = 64;
@@ -27,14 +28,18 @@ export function geometricModel(ratio = 0.9): TrigramModel {
   return prepareModel(json);
 }
 
+export function geometricSource(ratio = 0.9): ProbabilitySource {
+  return trigramSource(geometricModel(ratio));
+}
+
 // Deterministic-path model: trigram contexts force s[t] = s[t-2] + 1 (mod 62),
 // a cycle of 124 steps, so near-greedy generation walks distinct windows
 // instead of collapsing into a repeated one.
-export function pathModel(): TrigramModel {
+export function pathSource(): ProbabilitySource {
   const vocab = baseVocab();
   const unigram = vocab.map((_, i) => (i === 0 ? 0 : 1));
   const trigram: ModelJson['trigram'] = {};
-  const id = (v: number) => 2 + ((v % 62) + 62) % 62;
+  const id = (v: number) => 2 + (((v % 62) + 62) % 62);
   const seq = [0, 0]; // two <bos>
   const values: number[] = [];
   for (let t = 0; t < 260; t++) values.push(t < 2 ? t : (values[t - 2] + 1) % 62);
@@ -43,7 +48,7 @@ export function pathModel(): TrigramModel {
     const key = `${seq[t - 2]},${seq[t - 1]}`;
     if (!(key in trigram)) trigram[key] = { ids: [seq[t]], counts: [1000] };
   }
-  return prepareModel({ vocab, unigram, bigram: {}, trigram });
+  return trigramSource(prepareModel({ vocab, unigram, bigram: {}, trigram }));
 }
 
 // Deterministic 16-byte keys so runs are reproducible.
@@ -54,19 +59,19 @@ export function keyFromInt(i: number): Uint8Array {
   return bytes;
 }
 
-export async function generateIds(
-  model: TrigramModel,
+export async function generateTokens(
+  source: ProbabilitySource,
   key: Uint8Array,
   maxTokens: number,
   temperature: number,
   k = 4,
-): Promise<{ ids: number[]; rs: number[] }> {
-  const ids: number[] = [];
+): Promise<{ tokens: string[]; rs: number[] }> {
+  const tokens: string[] = [];
   const rs: number[] = [];
   const opts = { k, temperature, maxTokens, sampler: sampleWatermarked };
-  for await (const step of generate(model, key, [], opts)) {
-    ids.push(step.tokenId);
-    if (step.r) rs.push(step.r[step.tokenId]);
+  for await (const outcome of generate(source, key, '', opts)) {
+    tokens.push(outcome.token);
+    rs.push(outcome.r[outcome.index]);
   }
-  return { ids, rs };
+  return { tokens, rs };
 }

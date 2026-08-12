@@ -1,16 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import ControlSentence from '../components/ControlSentence';
 import GenerationPane from '../components/GenerationPane';
 import PromptBar from '../components/PromptBar';
 import TryThis from '../components/TryThis';
 import { useGeneration } from '../hooks/useGeneration';
+import { API_MODELS } from '../lib/apiModels';
+import { apiSource } from '../lib/apiSource';
 import { bytesToHex, randomKeyBytes } from '../lib/prf';
-import { loadModel } from '../lib/trigram';
+import { knownIds, loadModel, trigramSource } from '../lib/trigram';
 import type { TrigramModel } from '../lib/trigram';
 
 export default function Demo() {
   const [model, setModel] = useState<TrigramModel | null>(null);
   const [modelError, setModelError] = useState<string | null>(null);
+  const [backend, setBackend] = useState('trigram');
   const [k, setK] = useState(4);
   const [temperature, setTemperature] = useState(1.0);
   const [keyHex, setKeyHex] = useState(() => bytesToHex(randomKeyBytes()));
@@ -24,20 +27,33 @@ export default function Demo() {
       .catch((err: unknown) => setModelError(err instanceof Error ? err.message : String(err)));
   }, []);
 
-  const gen = useGeneration(model, keyHex, prompt ?? '', k, temperature, speed);
+  const source = useMemo(() => {
+    if (backend === 'trigram') return model ? trigramSource(model) : null;
+    const entry = API_MODELS.find((m) => m.id === backend);
+    return entry ? apiSource(entry.id, entry.label) : null;
+  }, [backend, model]);
+
+  const gen = useGeneration(source, keyHex, prompt ?? '', k, temperature, speed);
 
   useEffect(() => {
-    if (autoPlay && model && prompt) {
+    if (autoPlay && source && prompt) {
       gen.play();
       setAutoPlay(false);
     }
-  }, [autoPlay, model, prompt, gen]);
+  }, [autoPlay, source, prompt, gen]);
 
-  const statusText = modelError
-    ? `model failed to load (${modelError}) — run: npm run build:model`
-    : !model
-      ? 'loading model…'
-      : null;
+  const promptDisplay = useMemo(() => {
+    if (!prompt) return '';
+    if (backend !== 'trigram') return prompt;
+    return model ? knownIds(model, prompt).map((id) => model.vocab[id]).join(' ') : prompt;
+  }, [backend, model, prompt]);
+
+  const statusText =
+    backend === 'trigram' && modelError
+      ? `model failed to load (${modelError}) — run: npm run build:model`
+      : backend === 'trigram' && !model
+        ? 'loading model…'
+        : null;
 
   return (
     <article className='mx-auto w-full max-w-3xl'>
@@ -47,14 +63,14 @@ export default function Demo() {
           A watermark you can't see, but can measure
         </h1>
         <p className='mt-5 max-w-prose text-[17px] leading-8 text-ink/70'>
-          Every word below is chosen by a tiny language model — and secretly nudged by a cryptographic key. The text
+          Every word below is chosen by a language model — and secretly nudged by a cryptographic key. The text
           reads normally, and provably follows the model's own distribution. Yet score it against the key, and
           evidence that it is machine-written pools out of the noise, token by token, as color.
         </p>
         <p className='mt-4 font-mono text-[11px] text-ink/45'>
           <a href='#/explainer/aaronson' className='underline decoration-ink/25 underline-offset-2 hover:text-accent'>Aaronson (2022)</a> scheme
-          {' · '}<a href='#/explainer/sampling-rule' className='underline decoration-ink/25 underline-offset-2 hover:text-accent'>trigram</a> language model
-          {' · '}generation and detection run in this page
+          {' · '}pick a local or API model
+          {' · '}detection always runs in this page
         </p>
       </header>
 
@@ -66,7 +82,7 @@ export default function Demo() {
             setAutoPlay(true);
           }}
           running={gen.running}
-          disabled={!model}
+          disabled={!source}
           onPause={gen.pause}
           onStep={gen.stepOnce}
           onReset={() => {
@@ -75,13 +91,17 @@ export default function Demo() {
           }}
         />
         <GenerationPane
-          prompt={prompt}
+          promptDisplay={promptDisplay}
           tokens={gen.tokens}
           candidates={gen.candidates}
           log10InvP={gen.result.log10InvP}
           statusText={statusText}
+          notice={gen.error}
+          joiner={backend === 'trigram' ? 'space' : 'raw'}
         />
         <ControlSentence
+          backend={backend}
+          onBackend={setBackend}
           k={k}
           onK={setK}
           temperature={temperature}
@@ -103,6 +123,18 @@ export default function Demo() {
         onK={setK}
         onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
       />
+
+      <aside className='mt-14 max-w-prose border-t border-ink/10 pt-5 text-[13px] leading-6 text-ink/55'>
+        This page is part of <span className='font-semibold text-ink/70'>the9x</span> — AI literacy for
+        researchers. For more AI × science content,{' '}
+        <a
+          href='https://the9x.ac'
+          className='text-accent underline decoration-dotted underline-offset-2 hover:decoration-solid'
+        >
+          sign up at the9x.ac
+        </a>
+        .
+      </aside>
     </article>
   );
 }
