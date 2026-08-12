@@ -43,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     temperature: 1,
     logprobs: true,
     top_logprobs: 20,
-    // Never route to an endpoint that would silently drop logprobs.
+    // Route only to providers that support logprobs.
     provider: { require_parameters: true },
   });
   const headers = {

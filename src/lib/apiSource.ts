@@ -17,8 +17,8 @@ interface StepResponse {
   top: { token: string; logprob: number }[];
 }
 
-// OpenRouter providers strip leading spaces from BPE tokens, so we
-// use 'space' joiner and join with spaces — same as the trigram model.
+// OpenRouter providers strip BPE leading spaces from bytes, so we
+// fall back to space joiner for readable display.
 export function apiSource(id: string, label: string): ProbabilitySource {
   return {
     id,
