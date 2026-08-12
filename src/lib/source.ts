@@ -18,5 +18,8 @@ export interface ProbabilitySource {
   // How committed tokens are joined for display: 'space' for word-level
   // vocabularies, 'raw' for BPE-style pieces that carry their own spacing.
   joiner: 'space' | 'raw';
+  // Optional tokenizer access for editing and rescoring generated text.
+  encode?: (text: string) => string[];
+  decode?: (tokens: readonly string[]) => string;
   next(promptText: string, generated: readonly string[], temperature: number): Promise<StepDistribution>;
 }

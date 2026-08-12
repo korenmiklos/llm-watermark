@@ -107,13 +107,13 @@ async function build(spec: TinyModel, onProgress: ProgressHandler): Promise<Prob
     id: spec.id,
     label: spec.label,
     joiner: 'raw',
-    encode(text) {
+    encode(text: string): string[] {
       if (!text) return [];
-      return tokenizer.encode(text, { add_special_tokens: false }).map((id) => pieces[id] ?? `<tok${id}>`);
+      return tokenizer.encode(text, { add_special_tokens: false }).map((id: number) => pieces[id] ?? `<tok${id}>`);
     },
-    decode(tokens) {
+    decode(tokens: readonly string[]): string {
       if (tokens.length === 0) return '';
-      const ids = tokens.map((piece) => {
+      const ids = tokens.map((piece: string) => {
         const id = pieceToId.get(piece);
         if (id === undefined) throw new Error(`unknown token piece: ${piece}`);
         return id;
