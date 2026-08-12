@@ -32,6 +32,14 @@ export default function Demo() {
       .catch((err: unknown) => setModelError(err instanceof Error ? err.message : String(err)));
   }, []);
 
+  // Prefetch TinyStories in the background after the page settles.
+  useEffect(() => {
+    const id = requestIdleCallback(() => {
+      loadTinySource(() => {}).then(setTiny).catch(() => {});
+    });
+    return () => cancelIdleCallback(id);
+  }, []);
+
   useEffect(() => {
     if (backend !== TINY_BACKEND_ID || tiny) return;
     let cancelled = false;
