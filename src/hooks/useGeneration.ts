@@ -78,7 +78,7 @@ export function useGeneration(
       if (!r) throw new Error('watermarked sampler returned no r vector');
       historyRef.current.push(tokenId);
       scoresRef.current.push({ tokenId, r: r[tokenId], contribution: contribution(r[tokenId]) });
-      setCandidates(topCandidates(model, probs, r, tokenId));
+      setCandidates(topCandidates(model, probs, r, tokenId, 8));
       setTokens((prev) => [
         ...prev,
         { id: tokenId, text: model.vocab[tokenId], r: r[tokenId], p: probs[tokenId], contribution: contribution(r[tokenId]), entropy },

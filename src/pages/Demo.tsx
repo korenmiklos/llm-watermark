@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import CandidateTable from '../components/CandidateTable';
-import Controls from '../components/Controls';
-import ScoreChart from '../components/ScoreChart';
-import TextPane from '../components/TextPane';
-import Transport from '../components/Transport';
+import GenerationPane from '../components/GenerationPane';
+import PromptBar from '../components/PromptBar';
+import Toolbar from '../components/Toolbar';
 import { useGeneration } from '../hooks/useGeneration';
 import { bytesToHex, randomKeyBytes } from '../lib/prf';
 import { knownIds, loadModel } from '../lib/trigram';
@@ -37,43 +35,33 @@ export default function Demo() {
       : null;
 
   return (
-    <div className='flex flex-col gap-4'>
-      <div className='flex flex-wrap items-end justify-between gap-4'>
-        <Controls
-          k={k}
-          onK={setK}
-          temperature={temperature}
-          onTemperature={setTemperature}
-          keyHex={keyHex}
-          onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
-        />
-        <Transport
-          running={gen.running}
-          disabled={!model}
-          onPlayPause={() => (gen.running ? gen.pause() : gen.play())}
-          onStep={gen.stepOnce}
-          onReset={gen.reset}
-          speed={speed}
-          onSpeed={setSpeed}
-        />
-      </div>
-      <label className='flex flex-col gap-1 text-xs text-ink/70'>
-        prompt (seeds generation, not scored — out-of-vocabulary words are dropped)
-        <input
-          type='text'
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          className='w-full max-w-xl border border-ink/20 bg-white/70 px-2 py-1.5 font-mono text-sm text-ink'
-        />
-      </label>
-      <div className='grid gap-4 lg:grid-cols-[3fr_2fr]'>
-        <TextPane promptTokens={promptTokens} tokens={gen.tokens} statusText={statusText} />
-        <CandidateTable candidates={gen.candidates} />
-      </div>
-      {gen.atCapacity && (
-        <p className='text-xs text-ink/60'>Reached the 500-token cap — reset to keep exploring.</p>
-      )}
-      <ScoreChart result={gen.result} />
+    <div className='mx-auto flex w-full max-w-3xl flex-col gap-3'>
+      <PromptBar
+        prompt={prompt}
+        onPrompt={setPrompt}
+        running={gen.running}
+        disabled={!model}
+        onPlayPause={() => (gen.running ? gen.pause() : gen.play())}
+        onStep={gen.stepOnce}
+        onReset={gen.reset}
+      />
+      <GenerationPane
+        promptTokens={promptTokens}
+        tokens={gen.tokens}
+        candidates={gen.candidates}
+        log10InvP={gen.result.log10InvP}
+        statusText={statusText}
+      />
+      <Toolbar
+        k={k}
+        onK={setK}
+        temperature={temperature}
+        onTemperature={setTemperature}
+        keyHex={keyHex}
+        onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
+        speed={speed}
+        onSpeed={setSpeed}
+      />
     </div>
   );
 }
