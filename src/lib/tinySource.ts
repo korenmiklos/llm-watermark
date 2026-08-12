@@ -1,18 +1,24 @@
 // A tiny transformer as a ProbabilitySource: llama2.c-stories15M (trained
 // on TinyStories) running in the browser via transformers.js. Full logits
 // every step, so sampling is exactly distortion-free.
+//
+// Weights are served from GitHub Releases for speed (HF Hub is slow).
+// Each model has its own release tag with flat asset names.
 
 import type { ProbabilitySource, StepDistribution } from './source';
+
+const GH_RELEASE_BASE = 'https://github.com/korenmiklos/llm-watermark/releases/download/';
 
 export interface TinyModel {
   id: string;
   label: string;
   hfId: string;
+  releaseTag: string;
 }
 
 export const TINY_MODELS: TinyModel[] = [
-  { id: 'tiny-15m', label: 'TinyStories 15M (local, ~17 MB)', hfId: 'Xenova/llama2.c-stories15M' },
-  { id: 'tiny-110m', label: 'TinyStories 110M (local, ~50 MB)', hfId: 'Xenova/llama2.c-stories110M' },
+  { id: 'tiny-15m', label: 'TinyStories 15M (local, ~17 MB)', hfId: 'Xenova/llama2.c-stories15M', releaseTag: 'stories15M' },
+  { id: 'tiny-110m', label: 'TinyStories 110M (local, ~110 MB)', hfId: 'Xenova/llama2.c-stories110M', releaseTag: 'stories110M' },
 ];
 
 // Legacy alias for the default tiny model.
@@ -44,7 +50,15 @@ interface ProgressInfo {
 }
 
 async function build(spec: TinyModel, onProgress: ProgressHandler): Promise<ProbabilitySource> {
-  const { AutoModelForCausalLM, AutoTokenizer, Tensor } = await import('@huggingface/transformers');
+  const { AutoModelForCausalLM, AutoTokenizer, Tensor, env } = await import('@huggingface/transformers');
+
+  // Point transformers.js at GitHub Releases instead of HF Hub.
+  // Release assets are flat files under releases/download/{tag}/{filename}.
+  // transformers.js constructs: {remoteHost}{pathTemplate}{filename}
+  env.remoteHost = GH_RELEASE_BASE;
+  env.remotePathTemplate = '{model}/';
+  env.allowLocalModels = false;
+
   const progress = (info: ProgressInfo) => {
     if (info.status === 'progress' && info.file?.endsWith('.onnx') && info.progress !== undefined) {
       const size = info.total ? ` of ${(info.total / 1e6).toFixed(0)} MB` : '';
@@ -52,10 +66,11 @@ async function build(spec: TinyModel, onProgress: ProgressHandler): Promise<Prob
     }
   };
   onProgress('loading tokenizer…');
-  const tokenizer = await AutoTokenizer.from_pretrained(spec.hfId, { progress_callback: progress });
+  const tokenizer = await AutoTokenizer.from_pretrained(spec.releaseTag, { progress_callback: progress });
   onProgress(`downloading ${spec.label.split(' (')[0]}…`);
-  const model = await AutoModelForCausalLM.from_pretrained(spec.hfId, {
+  const model = await AutoModelForCausalLM.from_pretrained(spec.releaseTag, {
     dtype: 'q8',
+    subfolder: '',  // ONNX file is at release root, not in onnx/ subdirectory
     progress_callback: progress,
   });
   onProgress('warming up…');
