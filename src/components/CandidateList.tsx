@@ -3,8 +3,9 @@
 // ↵ marks the token the race commits.
 
 import type { Candidate } from '../lib/candidates';
+import { prettyToken } from '../lib/pieces';
 
-const visible = (text: string) => text.replace(/ /g, '␣').replace(/\n/g, '⏎');
+const visible = (text: string) => prettyToken(text).replace(/ /g, '␣').replace(/\n/g, '⏎');
 
 export default function CandidateList({ candidates }: { candidates: Candidate[] }) {
   const maxP = candidates.reduce((m, c) => Math.max(m, c.p), 0);

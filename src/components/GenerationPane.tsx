@@ -6,6 +6,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import CandidateList from './CandidateList';
 import type { CommittedToken } from '../hooks/useGeneration';
 import type { Candidate } from '../lib/candidates';
+import { prettyToken } from '../lib/pieces';
 import { washColor, washFraction } from '../lib/wash';
 
 interface GenerationPaneProps {
@@ -76,7 +77,7 @@ export default function GenerationPane({ promptDisplay, tokens, candidates, log1
                     onMouseEnter={() => setHover(i)}
                     onMouseLeave={() => setHover(null)}
                   >
-                    {token.text}
+                    {prettyToken(token.text)}
                   </span>
                 </span>
               ),

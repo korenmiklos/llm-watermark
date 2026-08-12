@@ -22,6 +22,9 @@ utf8 bytes, so any tokenizer works):
 
 - **trigram (local)** — full distribution, exactly distortion-free; built
   from TinyStories by `npm run build:model`
+- **TinyStories 15M (local)** — `Xenova/llama2.c-stories15M` running in the
+  browser via transformers.js (lazy-loaded, ~15 MB from the HF hub on first
+  use); full logits, exactly distortion-free, and a much better writer
 - **API models** — OpenRouter models exposing `top_logprobs` (see
   `src/lib/apiModels.ts`); the demo samples over the renormalized top-20,
   so distortion-free within that set. Requires `OPENROUTER_API_KEY` in the
