@@ -23,7 +23,7 @@ const ITEMS: ((props: TryThisProps) => React.ReactNode)[] = [
     <>
       Set the watermark window to <button className={link} onClick={() => onK(1)}>k = 1</button> and the
       generator eventually falls into a loop: a repeated window regenerates the same randomness, which forces the
-      same choice, forever. Widen it back to <button className={link} onClick={() => onK(4)}>k = 4</button> to
+      same choice, forever. Widen it back to <button className={link} onClick={() => onK(6)}>k = 6</button> to
       break the spell.
     </>
   ),

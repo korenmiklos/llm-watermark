@@ -16,8 +16,8 @@ export default function Demo() {
   const [model, setModel] = useState<TrigramModel | null>(null);
   const [modelError, setModelError] = useState<string | null>(null);
   const [backend, setBackend] = useState('trigram');
-  const [k, setK] = useState(4);
-  const [temperature, setTemperature] = useState(1.0);
+  const [k, setK] = useState(6);
+  const [temperature, setTemperature] = useState(0.8);
   const [keyHex, setKeyHex] = useState(() => bytesToHex(randomKeyBytes()));
   const [speed, setSpeed] = useState(8);
   const [prompt, setPrompt] = useState<string | null>(null);

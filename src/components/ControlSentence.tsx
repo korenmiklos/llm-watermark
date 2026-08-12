@@ -37,12 +37,12 @@ export default function ControlSentence({ backend, onBackend, k, onK, temperatur
           </option>
         ))}
       </select>{' '}
-      model emits{' '}
+      model{backend === 'trigram' ? <> emits{' '}
       <ScrubNumber label='speed' value={speed} min={2} max={20} step={1} pixelsPerStep={10} onChange={onSpeed} format={(v) => `${v} tokens`} />{' '}
-      a second at temperature{' '}
+      a second at</> : ' generates at'} temperature{' '}
       <ScrubNumber label='temperature' value={temperature} min={0.1} max={1.5} step={0.05} onChange={onTemperature} format={(v) => v.toFixed(2)} />
       . Each step hashes the previous{' '}
-      <ScrubNumber label='watermark window k' value={k} min={1} max={6} step={1} pixelsPerStep={22} onChange={onK} format={(v) => `${v} token${v === 1 ? '' : 's'}`} />{' '}
+      <ScrubNumber label='watermark window k' value={k} min={1} max={10} step={1} pixelsPerStep={22} onChange={onK} format={(v) => `${v} token${v === 1 ? '' : 's'}`} />{' '}
       with the secret key{' '}
       <code className='font-mono text-[13px] tabular-nums text-grey' title={keyHex}>{keyHex.slice(0, 8)}…</code>{' '}
       <button
