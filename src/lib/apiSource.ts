@@ -17,9 +17,8 @@ interface StepResponse {
   top: { token: string; logprob: number }[];
 }
 
-// Tokens from most open models (Gemma, Mistral, Llama) are plain words
-// without leading-space BPE encoding. Join with a space so the API sees
-// coherent text and the display renders correctly.
+// OpenRouter providers strip leading spaces from BPE tokens, so we
+// use 'space' joiner and join with spaces — same as the trigram model.
 export function apiSource(id: string, label: string): ProbabilitySource {
   return {
     id,
@@ -29,7 +28,6 @@ export function apiSource(id: string, label: string): ProbabilitySource {
       if (used >= SESSION_TOKEN_BUDGET) {
         throw new Error(`session budget of ${SESSION_TOKEN_BUDGET} API tokens reached — reload the page to continue`);
       }
-      // Join with space — the models we use return word-level tokens.
       const genText = generated.length > 0 ? ' ' + generated.join(' ') : '';
       const res = await fetch(`${API_BASE}/step`, {
         method: 'POST',

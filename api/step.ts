@@ -11,6 +11,7 @@ const MAX_GENERATED_CHARS = 8000;
 
 interface TopLogprob {
   token: string;
+  bytes?: number[];
   logprob: number;
 }
 
@@ -69,8 +70,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const data = (await upstream.json()) as {
     choices?: { logprobs?: { content?: { top_logprobs?: TopLogprob[] }[] } }[];
   };
+  // Use the bytes field to reconstruct the true BPE token text (with
+  // leading spaces for word boundaries) — the `token` field sometimes
+  // strips them.
+  const decoder = new TextDecoder();
   const top = (data.choices?.[0]?.logprobs?.content?.[0]?.top_logprobs ?? []).map((t) => ({
-    token: t.token,
+    token: t.bytes ? decoder.decode(Uint8Array.from(t.bytes)) : t.token,
     logprob: t.logprob,
   }));
   return res.status(200).json({ top });
