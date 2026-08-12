@@ -100,8 +100,11 @@ export function useGeneration(
     if (!running || !source) return;
     let raf = 0;
     let last = performance.now();
+    const isApi = source.joiner === 'raw' || source.id !== 'trigram';
     const tick = (now: number) => {
-      if (now - last >= 1000 / liveRef.current.speed && !busyRef.current) {
+      // API backends: fire as fast as the network allows (busyRef gates it).
+      // Local backends: throttle to the speed slider.
+      if (!busyRef.current && (isApi || now - last >= 1000 / liveRef.current.speed)) {
         last = now;
         void doStep();
       }

@@ -20,7 +20,14 @@ interface GenerationPaneProps {
 
 const DECADES = [0, 1, 2, 3, 4, 5, 6];
 const LIST_WIDTH = 176;
-const noSpaceBefore = (text: string) => /^[.,!?;:]$/.test(text);
+// Skip space before punctuation and before lowercase fragments that look
+// like BPE subword continuations (e.g. "ying" after "def", "ly" after "quick").
+const noSpaceBefore = (text: string, prev?: string) => {
+  if (/^[.,!?;:'")\]}]/.test(text)) return true;
+  // Lowercase fragment ≤3 chars after a token that ends with a letter → likely continuation
+  if (prev && /[a-zA-Z]$/.test(prev) && /^[a-z]{1,3}$/.test(text)) return true;
+  return false;
+};
 
 export default function GenerationPane({ promptDisplay, tokens, candidates, log10InvP, statusText, notice, joiner }: GenerationPaneProps) {
   const [hover, setHover] = useState<number | null>(null);
@@ -81,7 +88,7 @@ export default function GenerationPane({ promptDisplay, tokens, candidates, log1
                 <span key={i} style={{ color: 'rgba(35,35,36,0.35)' }}> ¶{'\n'}</span>
               ) : (
                 <span key={i}>
-                  {joiner === 'space' && !noSpaceBefore(token.text) && ' '}
+                  {joiner === 'space' && !noSpaceBefore(token.text, tokens[i - 1]?.text) && ' '}
                   <span
                     className='token-in cursor-default'
                     style={{
