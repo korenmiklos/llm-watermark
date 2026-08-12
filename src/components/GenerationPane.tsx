@@ -2,8 +2,9 @@
 // against the decade scale at left); each committed token is tinted by its
 // own contribution; the next token is picked from a dropdown at the caret.
 
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import CandidateList from './CandidateList';
+import WatermarkEditor from './WatermarkEditor';
 import type { CommittedToken } from '../hooks/useGeneration';
 import type { Candidate } from '../lib/candidates';
 import { prettyToken } from '../lib/pieces';
@@ -28,6 +29,10 @@ const noSpaceBefore = (text: string) => /^[.,!?;:'")\]}]/.test(text);
 
 export default function GenerationPane({ promptDisplay, tokens, candidates, log10InvP, statusText, notice, joiner, editText, onEditText }: GenerationPaneProps) {
   const [hover, setHover] = useState<number | null>(null);
+  const editorTokens = useMemo(
+    () => tokens.map((t) => ({ text: t.text, contribution: t.contribution })),
+    [tokens],
+  );
   const flowRef = useRef<HTMLDivElement | null>(null);
   const caretRef = useRef<HTMLSpanElement | null>(null);
   const [listPos, setListPos] = useState({ left: 0, top: 0 });
@@ -81,40 +86,11 @@ export default function GenerationPane({ promptDisplay, tokens, candidates, log1
           <>
             <span className='text-grey'>{promptDisplay}</span>
             {editText !== null ? (
-              <>
-                <span
-                  ref={(el) => {
-                    // Set initial text only once; browser handles edits after
-                    if (el && !el.dataset.init) {
-                      el.textContent = editText;
-                      el.dataset.init = '1';
-                    }
-                  }}
-                  contentEditable
-                  suppressContentEditableWarning
-                  onInput={(e) => onEditText((e.target as HTMLElement).textContent ?? '')}
-                  className='outline-none'
-                  style={{ caretColor: '#232324' }}
-                />
-                {tokens.length > 0 && (
-                  <div className='mt-2 font-mono text-[13px] leading-7'>
-                    {tokens.map((token, i) => (
-                      <span
-                        key={i}
-                        className='cursor-default'
-                        style={{
-                          backgroundColor: `rgba(230, 30, 37, ${Math.min(0.42, 0.09 * token.contribution).toFixed(3)})`,
-                          borderRadius: '2px',
-                        }}
-                        onMouseEnter={() => setHover(i)}
-                        onMouseLeave={() => setHover(null)}
-                      >
-                        {prettyToken(token.text)}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </>
+              <WatermarkEditor
+                text={editText}
+                onTextChange={onEditText}
+                tokens={editorTokens}
+              />
             ) : (
               <>
                 {tokens.map((token, i) =>
