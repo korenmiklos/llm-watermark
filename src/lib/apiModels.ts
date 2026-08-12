@@ -9,7 +9,6 @@ export interface ApiModel {
 }
 
 export const API_MODELS: ApiModel[] = [
-  { id: 'openai/gpt-oss-20b', label: 'GPT-OSS 20B', free: false },
   { id: 'meta-llama/llama-3.1-8b-instruct', label: 'Llama 3.1 8B', free: false },
   { id: 'mistralai/mistral-nemo', label: 'Mistral Nemo', free: false },
 ];
