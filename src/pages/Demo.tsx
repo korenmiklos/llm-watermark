@@ -83,9 +83,10 @@ export default function Demo() {
           A statistical signature you cannot see, but can test.
         </p>
         <p className='max-w-[65ch] text-[17px] leading-8 text-ink' style={{ marginTop: '26px' }}>
-          The EU AI Act requires providers of generative AI to make AI-generated content identifiable. Text is the
-          hard case: there are no pixels to perturb, only choices among plausible next words. This page lets you
-          inspect one influential research approach as it runs.
+          The <a href='https://artificialintelligenceact.eu/article/50/' className='underline decoration-line underline-offset-2 hover:text-accent' target='_blank' rel='noopener'>EU AI Act (Article 50)</a> requires
+          providers of generative AI to make AI-generated content identifiable. Text is the hard case: there are no
+          pixels to perturb, only choices among plausible next words. This page lets you inspect one influential
+          research approach as it runs.
         </p>
         <p className='mt-4 max-w-prose text-[17px] leading-8 text-ink'>
           At every step, the model supplies probabilities and a secret key supplies randomness. Their combination
