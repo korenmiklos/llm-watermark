@@ -17,27 +17,30 @@ const SECTIONS = [
 
 export default function Explainer() {
   return (
-    <article className='mx-auto flex max-w-2xl flex-col gap-6'>
-      <h2 className='font-heading text-2xl font-semibold'>How the watermark works</h2>
-      {SECTIONS.map(([title, body]) => (
-        <section key={title}>
-          <h3 className='font-heading text-lg font-semibold'>{title}</h3>
-          <p className='mt-1 text-sm leading-6 text-ink/80'>{body}</p>
+    <article className='mx-auto w-full max-w-prose'>
+      <p className='text-[11px] font-semibold uppercase tracking-[0.18em] text-accent'>Notes</p>
+      <h1 className='mt-3 font-heading text-3xl font-semibold leading-tight tracking-tight'>How the watermark works</h1>
+      <div className='mt-8 flex flex-col gap-7'>
+        {SECTIONS.map(([title, body]) => (
+          <section key={title}>
+            <h2 className='font-heading text-lg font-semibold tracking-tight'>{title}</h2>
+            <p className='mt-1.5 text-[15px] leading-7 text-ink/75'>{body}</p>
+          </section>
+        ))}
+        <section>
+          <h2 className='font-heading text-lg font-semibold tracking-tight'>References</h2>
+          <ul className='mt-2 flex list-disc flex-col gap-1.5 pl-5 text-sm leading-6 text-ink/70'>
+            {REFERENCES.map((ref) => (
+              <li key={ref}>{ref}</li>
+            ))}
+          </ul>
         </section>
-      ))}
-      <section>
-        <h3 className='font-heading text-lg font-semibold'>References</h3>
-        <ul className='mt-1 list-disc pl-5 text-sm leading-6 text-ink/80'>
-          {REFERENCES.map((ref) => (
-            <li key={ref}>{ref}</li>
-          ))}
-        </ul>
-      </section>
-      <p className='border-t border-ink/10 pt-3 text-xs leading-5 text-ink/60'>
-        Footnote: this demo expands each HMAC-SHA256 digest with a non-cryptographic PRNG
-        (splitmix64 seeding xoshiro128**). That weakens the formal unforgeability guarantee while
-        leaving the statistics exactly uniform — the right trade for a demo, not for production.
-      </p>
+        <p className='border-t border-ink/10 pt-4 text-xs leading-5 text-ink/50'>
+          Footnote: this demo expands each HMAC-SHA256 digest with a non-cryptographic PRNG (splitmix64 seeding
+          xoshiro128**). That weakens the formal unforgeability guarantee while leaving the statistics exactly
+          uniform — the right trade for a demo, not for production.
+        </p>
+      </div>
     </article>
   );
 }

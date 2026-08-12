@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import ControlSentence from '../components/ControlSentence';
 import GenerationPane from '../components/GenerationPane';
 import PromptBar from '../components/PromptBar';
-import Toolbar from '../components/Toolbar';
+import TryThis from '../components/TryThis';
 import { useGeneration } from '../hooks/useGeneration';
 import { bytesToHex, randomKeyBytes } from '../lib/prf';
 import { knownIds, loadModel } from '../lib/trigram';
@@ -35,33 +36,61 @@ export default function Demo() {
       : null;
 
   return (
-    <div className='mx-auto flex w-full max-w-3xl flex-col gap-3'>
-      <PromptBar
-        prompt={prompt}
-        onPrompt={setPrompt}
-        running={gen.running}
-        disabled={!model}
-        onPlayPause={() => (gen.running ? gen.pause() : gen.play())}
-        onStep={gen.stepOnce}
-        onReset={gen.reset}
-      />
-      <GenerationPane
-        promptTokens={promptTokens}
-        tokens={gen.tokens}
-        candidates={gen.candidates}
-        log10InvP={gen.result.log10InvP}
-        statusText={statusText}
-      />
-      <Toolbar
-        k={k}
-        onK={setK}
-        temperature={temperature}
+    <article className='mx-auto w-full max-w-3xl'>
+      <header>
+        <p className='text-[11px] font-semibold uppercase tracking-[0.18em] text-accent'>Interactive explainer</p>
+        <h1 className='mt-3 max-w-2xl font-heading text-4xl font-semibold leading-tight tracking-tight'>
+          A watermark you can't see, but can measure
+        </h1>
+        <p className='mt-5 max-w-prose text-[17px] leading-8 text-ink/70'>
+          Every word below is chosen by a tiny language model — and secretly nudged by a cryptographic key. The text
+          reads normally, and provably follows the model's own distribution. Yet score it against the key, and
+          evidence that it is machine-written pools out of the noise, token by token, as color.
+        </p>
+        <p className='mt-4 font-mono text-[11px] text-ink/45'>
+          Aaronson (2022) scheme · trigram language model · generation and detection run in this page
+        </p>
+      </header>
+
+      <figure className='mt-9 flex flex-col gap-3'>
+        <PromptBar
+          prompt={prompt}
+          onPrompt={setPrompt}
+          running={gen.running}
+          disabled={!model}
+          onPlayPause={() => (gen.running ? gen.pause() : gen.play())}
+          onStep={gen.stepOnce}
+          onReset={gen.reset}
+        />
+        <GenerationPane
+          promptTokens={promptTokens}
+          tokens={gen.tokens}
+          candidates={gen.candidates}
+          log10InvP={gen.result.log10InvP}
+          statusText={statusText}
+        />
+        <ControlSentence
+          k={k}
+          onK={setK}
+          temperature={temperature}
+          onTemperature={setTemperature}
+          speed={speed}
+          onSpeed={setSpeed}
+          keyHex={keyHex}
+          onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
+        />
+        <figcaption className='max-w-prose text-[12.5px] leading-5 text-ink/50'>
+          The window's color is the accumulated evidence, log₁₀(1/p) on the scale at left — sage could be anyone's
+          text; brick is this key's signature. Each token is shaded by its own draw r (hover for numbers). In the
+          dropdown, order is the model's preference p, the dot is the key's preference r, and ↵ marks the winner.
+        </figcaption>
+      </figure>
+
+      <TryThis
         onTemperature={setTemperature}
-        keyHex={keyHex}
+        onK={setK}
         onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
-        speed={speed}
-        onSpeed={setSpeed}
       />
-    </div>
+    </article>
   );
 }

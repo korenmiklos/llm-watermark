@@ -13,7 +13,8 @@
 }
 
 body {
-  background-color: var(--color-ground);
+  /* Editorial white page; the ground grey is the figure's neutral wash. */
+  background-color: #ffffff;
   color: var(--color-ink);
   font-family: var(--font-sans);
 }

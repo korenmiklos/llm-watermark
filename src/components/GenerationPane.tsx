@@ -41,7 +41,7 @@ export default function GenerationPane({ promptTokens, tokens, candidates, log10
   return (
     <section
       aria-label='generation'
-      className='relative flex min-h-96 rounded-md border border-ink/10 shadow-sm transition-colors duration-500'
+      className='relative flex min-h-96 rounded-sm border border-ink/15 transition-colors duration-500'
       style={{ backgroundColor: washColor(log10InvP) }}
     >
       <div className='relative w-7 shrink-0 border-r border-ink/10' aria-hidden='true'>
@@ -71,7 +71,7 @@ export default function GenerationPane({ promptTokens, tokens, candidates, log10
                   {!noSpaceBefore(token.text) && ' '}
                   <span
                     className='token-in cursor-default rounded-xs'
-                    style={{ backgroundColor: `rgba(168, 81, 75, ${(0.42 * token.r).toFixed(3)})` }}
+                    style={{ backgroundColor: `rgba(168, 81, 75, ${Math.min(0.5, 0.11 * token.contribution).toFixed(3)})` }}
                     onMouseEnter={() => setHover(i)}
                     onMouseLeave={() => setHover(null)}
                   >
