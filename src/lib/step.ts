@@ -1,31 +1,34 @@
-// One generation step: interpolated probabilities, window digest, sample.
-// Shared by the UI engine and the batch generator so both stay identical.
+// One generation step against any ProbabilitySource. Shared by the UI
+// engine and the batch generator so both stay identical.
 
 import { shannonEntropy } from './detector';
 import { watermarkWindow, windowDigest } from './prf';
 import type { Sampler } from './sampler';
-import { probabilities } from './trigram';
-import type { TrigramModel } from './trigram';
+import type { ProbabilitySource, StepDistribution } from './source';
 
-export interface StepResult {
-  tokenId: number;
-  probs: Float64Array;
-  r: Float64Array | null;
+export interface StepOutcome {
+  token: string;
+  index: number;
+  dist: StepDistribution;
+  r: Float64Array;
   entropy: number;
 }
 
+// Returns null when the source has nothing further to offer (an API model
+// that stopped, or an empty distribution).
 export async function nextStep(
-  model: TrigramModel,
+  source: ProbabilitySource,
   key: CryptoKey,
-  history: readonly number[],
+  promptText: string,
+  generated: readonly string[],
   k: number,
   temperature: number,
   sampler: Sampler,
-): Promise<StepResult> {
-  const w2 = history.length >= 1 ? history[history.length - 1] : model.bosId;
-  const w1 = history.length >= 2 ? history[history.length - 2] : model.bosId;
-  const probs = probabilities(model, w1, w2, temperature);
-  const digest = await windowDigest(key, watermarkWindow(history, k, model.bosId));
-  const { tokenId, r } = sampler(probs, digest);
-  return { tokenId, probs, r, entropy: shannonEntropy(probs) };
+): Promise<StepOutcome | null> {
+  const dist = await source.next(promptText, generated, temperature);
+  if (dist.tokens.length === 0) return null;
+  const digest = await windowDigest(key, watermarkWindow(generated, k));
+  const { index, r } = sampler(dist, digest);
+  if (index < 0) return null;
+  return { token: dist.tokens[index], index, dist, r, entropy: shannonEntropy(dist.probs) };
 }

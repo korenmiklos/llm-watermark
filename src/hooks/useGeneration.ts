@@ -1,6 +1,7 @@
 // The demo engine: a requestAnimationFrame loop drives one watermarked
-// generation step per 1/speed seconds. Temperature and speed apply live;
-// key, k, prompt or model changes reset the run (they invalidate scoring).
+// generation step per 1/speed seconds against any ProbabilitySource.
+// Temperature and speed apply live; source, key, k or prompt changes reset
+// the run (they invalidate scoring).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { topCandidates } from '../lib/candidates';
@@ -9,12 +10,10 @@ import { contribution, summarize } from '../lib/detector';
 import type { DetectionResult, TokenScore } from '../lib/detector';
 import { hexToBytes, importHmacKey } from '../lib/prf';
 import { sampleWatermarked } from '../lib/sampler';
+import type { ProbabilitySource } from '../lib/source';
 import { nextStep } from '../lib/step';
-import { knownIds } from '../lib/trigram';
-import type { TrigramModel } from '../lib/trigram';
 
 export interface CommittedToken {
-  id: number;
   text: string;
   r: number;
   p: number;
@@ -27,7 +26,7 @@ export interface Generation {
   candidates: Candidate[];
   result: DetectionResult;
   running: boolean;
-  atCapacity: boolean;
+  error: string | null;
   play: () => void;
   pause: () => void;
   stepOnce: () => void;
@@ -37,7 +36,7 @@ export interface Generation {
 const MAX_TOKENS = 500;
 
 export function useGeneration(
-  model: TrigramModel | null,
+  source: ProbabilitySource | null,
   keyHex: string,
   prompt: string,
   k: number,
@@ -48,8 +47,9 @@ export function useGeneration(
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [result, setResult] = useState<DetectionResult>(() => summarize([]));
   const [running, setRunning] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const historyRef = useRef<number[]>([]);
+  const generatedRef = useRef<string[]>([]);
   const scoresRef = useRef<TokenScore[]>([]);
   const keyRef = useRef<CryptoKey | null>(null);
   const busyRef = useRef(false);
@@ -58,39 +58,46 @@ export function useGeneration(
 
   const reset = useCallback(() => {
     keyRef.current = null;
-    historyRef.current = model ? knownIds(model, prompt) : [];
+    generatedRef.current = [];
     scoresRef.current = [];
     setTokens([]);
     setCandidates([]);
     setResult(summarize([]));
-  }, [model, prompt]);
+    setError(null);
+  }, []);
 
-  useEffect(() => reset(), [reset, keyHex, k]);
+  useEffect(() => reset(), [reset, source, keyHex, prompt, k]);
 
   const doStep = useCallback(async () => {
-    if (!model || busyRef.current || scoresRef.current.length >= MAX_TOKENS) return;
+    if (!source || busyRef.current || scoresRef.current.length >= MAX_TOKENS) return;
     busyRef.current = true;
     try {
       if (!keyRef.current) keyRef.current = await importHmacKey(hexToBytes(keyHex));
       const { k: liveK, temperature: liveT } = liveRef.current;
-      const step = await nextStep(model, keyRef.current, historyRef.current, liveK, liveT, sampleWatermarked);
-      const { tokenId, probs, r, entropy } = step;
-      if (!r) throw new Error('watermarked sampler returned no r vector');
-      historyRef.current.push(tokenId);
-      scoresRef.current.push({ tokenId, r: r[tokenId], contribution: contribution(r[tokenId]) });
-      setCandidates(topCandidates(model, probs, r, tokenId, 8));
+      const outcome = await nextStep(source, keyRef.current, prompt, generatedRef.current, liveK, liveT, sampleWatermarked);
+      if (!outcome) {
+        setRunning(false);
+        return;
+      }
+      const r = outcome.r[outcome.index];
+      generatedRef.current.push(outcome.token);
+      scoresRef.current.push({ token: outcome.token, r, contribution: contribution(r) });
+      setCandidates(topCandidates(outcome));
       setTokens((prev) => [
         ...prev,
-        { id: tokenId, text: model.vocab[tokenId], r: r[tokenId], p: probs[tokenId], contribution: contribution(r[tokenId]), entropy },
+        { text: outcome.token, r, p: outcome.dist.probs[outcome.index], contribution: contribution(r), entropy: outcome.entropy },
       ]);
       setResult(summarize([...scoresRef.current]));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setRunning(false);
     } finally {
       busyRef.current = false;
     }
-  }, [model, keyHex]);
+  }, [source, keyHex, prompt]);
 
   useEffect(() => {
-    if (!running || !model) return;
+    if (!running || !source) return;
     let raf = 0;
     let last = performance.now();
     const tick = (now: number) => {
@@ -102,7 +109,7 @@ export function useGeneration(
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [running, model, doStep]);
+  }, [running, source, doStep]);
 
   const atCapacity = tokens.length >= MAX_TOKENS;
   useEffect(() => {
@@ -114,8 +121,11 @@ export function useGeneration(
     candidates,
     result,
     running,
-    atCapacity,
-    play: () => setRunning(true),
+    error,
+    play: () => {
+      setError(null);
+      setRunning(true);
+    },
     pause: () => setRunning(false),
     stepOnce: () => void doStep(),
     reset: () => {

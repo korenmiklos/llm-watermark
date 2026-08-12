@@ -15,6 +15,21 @@ Lives at [the9x.ai/watermarking](https://the9x.ai/watermarking) (Vite `base`
 is set to `/watermarking/`; the dev server serves the app under that path
 too).
 
+## Backends
+
+The watermark machinery is backend-agnostic (tokens are identified by their
+utf8 bytes, so any tokenizer works):
+
+- **trigram (local)** — full distribution, exactly distortion-free; built
+  from TinyStories by `npm run build:model`
+- **API models** — OpenRouter models exposing `top_logprobs` (see
+  `src/lib/apiModels.ts`); the demo samples over the renormalized top-20,
+  so distortion-free within that set. Requires `OPENROUTER_API_KEY` in the
+  deployment's env (Vercel); the serverless proxy is `api/step.ts`. The
+  watermark key never leaves the browser — the proxy only fetches logprobs.
+
+`scripts/list-logprobs-models.mjs` re-derives the pool of qualifying models.
+
 ## Development
 
 ```sh
@@ -22,6 +37,9 @@ npm install
 npm run build:model   # downloads TinyStories once, writes public/model.json
 npm run dev
 ```
+
+For the API backend locally, run `vercel dev` with `OPENROUTER_API_KEY` set,
+or point `VITE_API_BASE` at a deployed instance.
 
 ## Scripts
 

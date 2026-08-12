@@ -1,38 +1,30 @@
-// Step-wise generation driver shared by the tests and batch use.
+// Batch generation driver used by the tests.
 
 import { importHmacKey } from './prf';
 import type { Sampler } from './sampler';
+import type { ProbabilitySource } from './source';
 import { nextStep } from './step';
-import type { TrigramModel } from './trigram';
-
-export interface GenerationStep {
-  index: number;
-  tokenId: number;
-  probs: Float64Array;
-  r: Float64Array | null;
-  entropy: number;
-}
+import type { StepOutcome } from './step';
 
 export interface GenerateOptions {
   k: number;
   temperature: number;
   maxTokens: number;
   sampler: Sampler;
-  stopAtEos?: boolean;
 }
 
 export async function* generate(
-  model: TrigramModel,
+  source: ProbabilitySource,
   keyBytes: Uint8Array,
-  promptIds: readonly number[],
+  promptText: string,
   opts: GenerateOptions,
-): AsyncGenerator<GenerationStep> {
+): AsyncGenerator<StepOutcome> {
   const key = await importHmacKey(keyBytes);
-  const history = [...promptIds];
+  const generated: string[] = [];
   for (let i = 0; i < opts.maxTokens; i++) {
-    const step = await nextStep(model, key, history, opts.k, opts.temperature, opts.sampler);
-    history.push(step.tokenId);
-    yield { index: i, ...step };
-    if (opts.stopAtEos && step.tokenId === model.eosId) return;
+    const outcome = await nextStep(source, key, promptText, generated, opts.k, opts.temperature, opts.sampler);
+    if (!outcome) return;
+    generated.push(outcome.token);
+    yield outcome;
   }
 }

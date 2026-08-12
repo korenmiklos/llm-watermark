@@ -1,52 +1,56 @@
 import { describe, expect, it } from 'vitest';
 import {
-  DOMAIN_PLAIN,
-  DOMAIN_WATERMARK,
-  drawRVector,
   importHmacKey,
-  rngFromDigest,
+  plainUniform,
+  rForToken,
   watermarkWindow,
   windowDigest,
 } from '../src/lib/prf';
 import { keyFromInt } from './synthetic';
 
 describe('prf', () => {
-  it('is deterministic for the same key, window and domain', async () => {
+  it('is deterministic for the same key, window and token', async () => {
     const key = await importHmacKey(keyFromInt(7));
-    const d1 = await windowDigest(key, [1, 2, 3, 4]);
-    const d2 = await windowDigest(key, [1, 2, 3, 4]);
-    const r1 = drawRVector(rngFromDigest(d1, DOMAIN_WATERMARK), 32);
-    const r2 = drawRVector(rngFromDigest(d2, DOMAIN_WATERMARK), 32);
-    expect([...r1]).toEqual([...r2]);
+    const d1 = await windowDigest(key, ['a', 'b', 'c', 'd']);
+    const d2 = await windowDigest(key, ['a', 'b', 'c', 'd']);
+    expect(rForToken(d1, 'hello')).toBe(rForToken(d2, 'hello'));
+    expect(plainUniform(d1)).toBe(plainUniform(d2));
   });
 
-  it('changes with key, window and domain tag', async () => {
+  it('changes with key, window, token and domain', async () => {
     const keyA = await importHmacKey(keyFromInt(1));
     const keyB = await importHmacKey(keyFromInt(2));
-    const base = await windowDigest(keyA, [1, 2, 3, 4]);
-    const otherKey = await windowDigest(keyB, [1, 2, 3, 4]);
-    const otherWindow = await windowDigest(keyA, [1, 2, 3, 5]);
-    const r = (d: Uint8Array, dom: bigint) => [...drawRVector(rngFromDigest(d, dom), 8)];
-    expect(r(base, DOMAIN_WATERMARK)).not.toEqual(r(otherKey, DOMAIN_WATERMARK));
-    expect(r(base, DOMAIN_WATERMARK)).not.toEqual(r(otherWindow, DOMAIN_WATERMARK));
-    expect(r(base, DOMAIN_WATERMARK)).not.toEqual(r(base, DOMAIN_PLAIN));
+    const base = await windowDigest(keyA, ['a', 'b']);
+    const otherKey = await windowDigest(keyB, ['a', 'b']);
+    const otherWindow = await windowDigest(keyA, ['a', 'c']);
+    expect(rForToken(base, 'x')).not.toBe(rForToken(otherKey, 'x'));
+    expect(rForToken(base, 'x')).not.toBe(rForToken(otherWindow, 'x'));
+    expect(rForToken(base, 'x')).not.toBe(rForToken(base, 'y'));
+    expect(rForToken(base, 'x')).not.toBe(plainUniform(base));
+  });
+
+  it('length-prefixing keeps window boundaries unambiguous', async () => {
+    const key = await importHmacKey(keyFromInt(3));
+    const d1 = await windowDigest(key, ['ab', 'c']);
+    const d2 = await windowDigest(key, ['a', 'bc']);
+    expect([...d1]).not.toEqual([...d2]);
   });
 
   it('left-pads the window with <bos>', () => {
-    expect(watermarkWindow([5, 6], 4, 0)).toEqual([0, 0, 5, 6]);
-    expect(watermarkWindow([1, 2, 3, 4, 5], 3, 0)).toEqual([3, 4, 5]);
-    expect(watermarkWindow([], 2, 9)).toEqual([9, 9]);
+    expect(watermarkWindow(['x', 'y'], 4)).toEqual(['<bos>', '<bos>', 'x', 'y']);
+    expect(watermarkWindow(['a', 'b', 'c', 'd', 'e'], 3)).toEqual(['c', 'd', 'e']);
+    expect(watermarkWindow([], 2)).toEqual(['<bos>', '<bos>']);
   });
 
   it('draws clamped open-interval uniforms with mean ~0.5', async () => {
-    const key = await importHmacKey(keyFromInt(3));
+    const key = await importHmacKey(keyFromInt(4));
     let sum = 0;
     const total = 100_000;
     let drawn = 0;
     for (let w = 0; drawn < total; w++) {
-      const rng = rngFromDigest(await windowDigest(key, [w]), DOMAIN_WATERMARK);
-      for (let i = 0; i < 1000; i++, drawn++) {
-        const u = rng();
+      const digest = await windowDigest(key, [`window${w}`]);
+      for (let i = 0; i < 500; i++, drawn++) {
+        const u = rForToken(digest, `tok${i}`);
         expect(u).toBeGreaterThanOrEqual(2 ** -24);
         expect(u).toBeLessThanOrEqual(1 - 2 ** -24);
         sum += u;

@@ -4,13 +4,16 @@ import GenerationPane from '../components/GenerationPane';
 import PromptBar from '../components/PromptBar';
 import TryThis from '../components/TryThis';
 import { useGeneration } from '../hooks/useGeneration';
+import { API_MODELS } from '../lib/apiModels';
+import { apiSource } from '../lib/apiSource';
 import { bytesToHex, randomKeyBytes } from '../lib/prf';
-import { knownIds, loadModel } from '../lib/trigram';
+import { knownIds, loadModel, trigramSource } from '../lib/trigram';
 import type { TrigramModel } from '../lib/trigram';
 
 export default function Demo() {
   const [model, setModel] = useState<TrigramModel | null>(null);
   const [modelError, setModelError] = useState<string | null>(null);
+  const [backend, setBackend] = useState('trigram');
   const [k, setK] = useState(4);
   const [temperature, setTemperature] = useState(1.0);
   const [keyHex, setKeyHex] = useState(() => bytesToHex(randomKeyBytes()));
@@ -23,17 +26,25 @@ export default function Demo() {
       .catch((err: unknown) => setModelError(err instanceof Error ? err.message : String(err)));
   }, []);
 
-  const gen = useGeneration(model, keyHex, prompt, k, temperature, speed);
-  const promptTokens = useMemo(
-    () => (model ? knownIds(model, prompt).map((id) => model.vocab[id]) : []),
-    [model, prompt],
-  );
+  const source = useMemo(() => {
+    if (backend === 'trigram') return model ? trigramSource(model) : null;
+    const entry = API_MODELS.find((m) => m.id === backend);
+    return entry ? apiSource(entry.id, entry.label) : null;
+  }, [backend, model]);
 
-  const statusText = modelError
-    ? `model failed to load (${modelError}) — run: npm run build:model`
-    : !model
-      ? 'loading model…'
-      : null;
+  const gen = useGeneration(source, keyHex, prompt, k, temperature, speed);
+
+  const promptDisplay = useMemo(() => {
+    if (backend !== 'trigram') return prompt;
+    return model ? knownIds(model, prompt).map((id) => model.vocab[id]).join(' ') : prompt;
+  }, [backend, model, prompt]);
+
+  const statusText =
+    backend === 'trigram' && modelError
+      ? `model failed to load (${modelError}) — run: npm run build:model`
+      : backend === 'trigram' && !model
+        ? 'loading model…'
+        : null;
 
   return (
     <article className='mx-auto w-full max-w-3xl'>
@@ -43,12 +54,12 @@ export default function Demo() {
           A watermark you can't see, but can measure
         </h1>
         <p className='mt-5 max-w-prose text-[17px] leading-8 text-ink/70'>
-          Every word below is chosen by a tiny language model — and secretly nudged by a cryptographic key. The text
+          Every word below is chosen by a language model — and secretly nudged by a cryptographic key. The text
           reads normally, and provably follows the model's own distribution. Yet score it against the key, and
           evidence that it is machine-written pools out of the noise, token by token, as color.
         </p>
         <p className='mt-4 font-mono text-[11px] text-ink/45'>
-          Aaronson (2022) scheme · trigram language model · generation and detection run in this page
+          Aaronson (2022) scheme · pick a local or API model · detection always runs in this page
         </p>
       </header>
 
@@ -57,19 +68,23 @@ export default function Demo() {
           prompt={prompt}
           onPrompt={setPrompt}
           running={gen.running}
-          disabled={!model}
+          disabled={!source}
           onPlayPause={() => (gen.running ? gen.pause() : gen.play())}
           onStep={gen.stepOnce}
           onReset={gen.reset}
         />
         <GenerationPane
-          promptTokens={promptTokens}
+          promptDisplay={promptDisplay}
           tokens={gen.tokens}
           candidates={gen.candidates}
           log10InvP={gen.result.log10InvP}
           statusText={statusText}
+          notice={gen.error}
+          joiner={backend === 'trigram' ? 'space' : 'raw'}
         />
         <ControlSentence
+          backend={backend}
+          onBackend={setBackend}
           k={k}
           onK={setK}
           temperature={temperature}

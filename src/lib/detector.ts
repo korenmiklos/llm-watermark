@@ -1,11 +1,11 @@
 // Detection: score, p-value, and entropy accounting. Needs the key and the
-// text only — this module must never import from trigram.ts.
+// generated token sequence only — no model, no vocabulary, no backend.
 
 import { gammaQ } from './gamma';
-import { DOMAIN_WATERMARK, importHmacKey, rngFromDigest, watermarkWindow, windowDigest } from './prf';
+import { importHmacKey, rForToken, watermarkWindow, windowDigest } from './prf';
 
 export interface TokenScore {
-  tokenId: number;
+  token: string;
   r: number;
   contribution: number;
 }
@@ -23,15 +23,6 @@ export function contribution(r: number): number {
   return -Math.log(1 - r);
 }
 
-// r_t[y_t] without materializing the full vector: uniforms are drawn in
-// ascending token id order, so r[y] is the (y+1)-th draw.
-export function rForToken(digest: Uint8Array, tokenId: number): number {
-  const rng = rngFromDigest(digest, DOMAIN_WATERMARK);
-  let r = 0;
-  for (let i = 0; i <= tokenId; i++) r = rng();
-  return r;
-}
-
 // S ~ Gamma(n, 1) under the null; p-value clamped where doubles underflow.
 export function summarize(tokens: TokenScore[]): DetectionResult {
   const n = tokens.length;
@@ -42,26 +33,20 @@ export function summarize(tokens: TokenScore[]): DetectionResult {
   return { tokens, n, score, pValue, z, log10InvP };
 }
 
-// Scores ids[scoreFrom..] — pass the prompt length so pasted text that seeded
-// generation is never scored, while its tokens still feed the windows.
-export async function detect(
-  keyBytes: Uint8Array,
-  ids: readonly number[],
-  k: number,
-  bosId: number,
-  scoreFrom = 0,
-): Promise<DetectionResult> {
+// Score a generated token sequence: identical windows and identical r
+// derivation as generation, one HMAC per position.
+export async function detect(keyBytes: Uint8Array, tokens: readonly string[], k: number): Promise<DetectionResult> {
   const key = await importHmacKey(keyBytes);
-  const tokens: TokenScore[] = [];
-  for (let t = scoreFrom; t < ids.length; t++) {
-    const digest = await windowDigest(key, watermarkWindow(ids.slice(0, t), k, bosId));
-    const r = rForToken(digest, ids[t]);
-    tokens.push({ tokenId: ids[t], r, contribution: contribution(r) });
+  const scores: TokenScore[] = [];
+  for (let t = 0; t < tokens.length; t++) {
+    const digest = await windowDigest(key, watermarkWindow(tokens.slice(0, t), k));
+    const r = rForToken(digest, tokens[t]);
+    scores.push({ token: tokens[t], r, contribution: contribution(r) });
   }
-  return summarize(tokens);
+  return summarize(scores);
 }
 
-// Per-step Shannon entropy in nats — the second trace on the sample-size chart.
+// Per-step Shannon entropy in nats.
 export function shannonEntropy(p: Float64Array): number {
   let h = 0;
   for (let i = 0; i < p.length; i++) {
