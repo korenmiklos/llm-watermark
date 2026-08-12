@@ -12,7 +12,7 @@ const REFERENCES: Reference[] = [
   {
     authors: 'Aaronson',
     title: 'Watermarking of large language models',
-    venue: '2022 lecture and Simons Institute talk',
+    venue: 'Lecture slides, 2022',
     href: 'https://www.scottaaronson.com/talks/watermark.ppt',
   },
   {
@@ -36,7 +36,7 @@ const REFERENCES: Reference[] = [
   {
     authors: 'Sadasivan et al.',
     title: 'Can AI-Generated Text be Reliably Detected?',
-    venue: 'TMLR, 2025',
+    venue: 'TMLR',
     href: 'https://arxiv.org/abs/2303.11156',
   },
   {
@@ -81,7 +81,7 @@ export default function Explainer() {
         <p className='font-mono text-xs font-medium uppercase tracking-[0.18em] text-grey'>A guided reading of the live demo</p>
         <h1 className='mt-3 font-heading text-[40px] font-bold leading-[1.08] tracking-tight text-navy'>A statistical signature in ordinary text</h1>
         <p className='mt-5 text-[20px] leading-8 text-slate'>
-          This demo implements Aaronson&apos;s distortion-free watermark: a secret key changes which plausible token is sampled, without changing the language model&apos;s distribution over output.
+          This demo illustrates Aaronson&apos;s distortion-free watermark: a secret key changes which plausible token is sampled while preserving the language model&apos;s next-token distribution in the idealized scheme.
         </p>
         <p className='mt-4 text-[16px] leading-7 text-ink'>
           A watermark is evidence of how a passage was sampled, not a general-purpose AI detector and not proof of authorship. It is useful only when a provider controls the key, preserves it, and states what a positive test means. The EU AI Act&apos;s transparency rules make generated content identifiable; a watermark is one possible technical mechanism, rather than the legal obligation itself.
@@ -98,7 +98,7 @@ export default function Explainer() {
         <section id='aaronson' className='scroll-mt-8'>
           <h2 className='font-heading text-xl font-bold tracking-tight text-navy'>The idea in one sentence</h2>
           <p className='mt-2 text-[16px] leading-7 text-ink'>
-            At each position, the model supplies a probability for every next token; the secret key supplies an independent random number for every candidate. Their combination selects one token, and the selected random numbers later become the evidence.
+            At each position, the model supplies a probability for every next token; the secret key supplies a reproducible pseudorandom number for every candidate. Their combination selects one token, and the selected numbers later become the evidence.
           </p>
         </section>
 
@@ -114,7 +114,7 @@ export default function Explainer() {
 
         <Step number='2' title='Use the key to make a reproducible random race'>
           <p>
-            The detector and generator share a secret key <Math tex='K' />. The previous <Math tex='k' /> generated tokens are encoded unambiguously and passed through HMAC-SHA256. That digest deterministically yields one value <Math tex='r_t(i)\in(0,1)' /> for every candidate token.
+            The detector and generator share a secret key <Math tex='K' />. The previous <Math tex='k' /> generated tokens are encoded unambiguously and passed through a keyed hash function. Its digest deterministically yields one value <Math tex='r_t(i)\in(0,1)' /> for every candidate token.
           </p>
           <Formula><Math display tex='r_t(i)=\operatorname{PRF}_K(x_{t-k:t-1},i)\sim\operatorname{Uniform}(0,1).' /></Formula>
           <p>
@@ -132,17 +132,17 @@ export default function Explainer() {
           </p>
           <Formula><Math display tex='\Pr(y_t=i\mid x_{&lt;t})=p_t(i).' /></Formula>
           <Note>
-            This exact claim requires the whole probability distribution. The local TinyStories transformer models have it. API mode samples from a renormalized top-20 distribution, so it is exact only within that reported set.
+            This exact claim requires the whole probability distribution. The local TinyStories transformer models used in this demo supply it. Some model APIs usefully expose their top next-token choices and probabilities (often called <span className='font-mono text-[12px]'>top logprobs</span>); a sampler built from that shortlist would preserve probabilities only within the reported set.
           </Note>
         </Step>
 
         <Step number='4' title='Recover evidence from the finished text'>
           <p>
-            For a passage of <Math tex='n' /> tokens, the verifier rebuilds every <Math tex='r_t(y_t)' /> and adds a contribution. Under ordinary, unwatermarked sampling, the selected <Math tex='r_t(y_t)' /> is uniform. Its contribution is exponential with mean one.
+            For a passage of <Math tex='n' /> tokens, the verifier rebuilds every <Math tex='r_t(y_t)' /> and adds a contribution. In the idealized null model, ordinary sampling makes the selected <Math tex='r_t(y_t)' /> uniform. Its contribution is exponential with mean one.
           </p>
-          <Formula><Math display tex='S=\sum_{t=1}^{n}-\ln\!\bigl(1-r_t(y_t)\bigr),\qquad S\mid H_0\sim\operatorname{Gamma}(n,1).' /></Formula>
+          <Formula><Math display tex='S=\sum_{t=1}^{n}-\ln\!\bigl(1-r_t(y_t)\bigr),\qquad S\mid H_0\approx\operatorname{Gamma}(n,1).' /></Formula>
           <p>
-            The p-value is the upper-tail probability that an unwatermarked passage would score at least this highly. The red indicator behind the generated text displays <Math tex='\log_{10}(1/p)' />: 3 means one-in-a-thousand under the null; it does not mean “99.9% probability that AI wrote this.”
+            The p-value is the upper-tail probability from that reference distribution: how often an unwatermarked passage would score at least this highly under the idealized null. The red indicator behind the generated text displays <Math tex='\log_{10}(1/p)' />: 3 means one-in-a-thousand under the null; it does not mean “99.9% probability that AI wrote this.”
           </p>
           <Formula><Math display tex='p\text{-value}=\Pr_{H_0}(S\geq S_{\mathrm{obs}})=Q(n,S_{\mathrm{obs}}).' /></Formula>
         </Step>
@@ -186,7 +186,7 @@ export default function Explainer() {
 
         <section className='border-t border-line pt-5 text-[12px] leading-5 text-grey'>
           <p>
-            <span className='font-semibold text-ink'>Implementation note.</span> This is an educational implementation, not a production watermarking service. It uses HMAC-SHA256 for each window, then expands the digest to candidate uniforms with splitmix64/xoshiro-style pseudorandom generation. That preserves the intended uniform statistics for the demo, but it is not the cryptographic construction needed to claim formal unforgeability. Keep the key private: publishing it lets anyone reproduce the signature.
+            <span className='font-semibold text-ink'>Implementation note.</span> This is an educational implementation, not a production watermarking service. It uses a keyed hash function for each window, then expands the digest to candidate uniforms with splitmix64/xoshiro-style pseudorandom generation. This approximates the intended uniform statistics for the demo, but it is not the cryptographic construction needed to claim formal unforgeability. Keep the key private: publishing it lets anyone reproduce the signature.
           </p>
         </section>
 
