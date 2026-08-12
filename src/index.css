@@ -1,0 +1,24 @@
+@import 'tailwindcss';
+
+@theme {
+  --color-ground: #eef0f2;
+  --color-ink: #16181c;
+  --color-accent: #2b3fa8;
+  /* Sage and brick are reserved for the statistic — never chrome. */
+  --color-sage: #7c9a72;
+  --color-brick: #a8514b;
+  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
+  --font-heading: 'IBM Plex Sans Condensed', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
+body {
+  background-color: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
