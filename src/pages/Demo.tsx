@@ -8,7 +8,7 @@ import { API_MODELS } from '../lib/apiModels';
 import { apiSource } from '../lib/apiSource';
 import { bytesToHex, randomKeyBytes } from '../lib/prf';
 import type { ProbabilitySource } from '../lib/source';
-import { TINY_BACKEND_ID, loadTinySource } from '../lib/tinySource';
+import { TINY_MODELS, loadTinySource } from '../lib/tinySource';
 import { knownIds, loadModel, trigramSource } from '../lib/trigram';
 import type { TrigramModel } from '../lib/trigram';
 
@@ -23,7 +23,7 @@ export default function Demo() {
   const [prompt, setPrompt] = useState<string | null>(null);
   const [autoPlay, setAutoPlay] = useState(false);
 
-  const [tiny, setTiny] = useState<ProbabilitySource | null>(null);
+  const [tinySources, setTinySources] = useState<Record<string, ProbabilitySource>>({});
   const [tinyStatus, setTinyStatus] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,24 +32,25 @@ export default function Demo() {
       .catch((err: unknown) => setModelError(err instanceof Error ? err.message : String(err)));
   }, []);
 
-  // Prefetch TinyStories in the background after the page settles.
+  // Prefetch the default tiny model in the background.
   useEffect(() => {
     const id = requestIdleCallback(() => {
-      loadTinySource(() => {}).then(setTiny).catch(() => {});
+      loadTinySource(() => {}).then((s) => setTinySources((prev) => ({ ...prev, [s.id]: s }))).catch(() => {});
     });
     return () => cancelIdleCallback(id);
   }, []);
 
+  const tinySpec = TINY_MODELS.find((m) => m.id === backend);
   useEffect(() => {
-    if (backend !== TINY_BACKEND_ID || tiny) return;
+    if (!tinySpec || tinySources[tinySpec.id]) return;
     let cancelled = false;
     setTinyStatus('loading…');
     loadTinySource((msg) => {
       if (!cancelled) setTinyStatus(msg);
-    })
+    }, tinySpec)
       .then((s) => {
         if (cancelled) return;
-        setTiny(s);
+        setTinySources((prev) => ({ ...prev, [s.id]: s }));
         setTinyStatus(null);
       })
       .catch((err: unknown) => {
@@ -58,14 +59,14 @@ export default function Demo() {
     return () => {
       cancelled = true;
     };
-  }, [backend, tiny]);
+  }, [tinySpec, tinySources]);
 
   const source = useMemo(() => {
     if (backend === 'trigram') return model ? trigramSource(model) : null;
-    if (backend === TINY_BACKEND_ID) return tiny;
+    if (tinySpec) return tinySources[tinySpec.id] ?? null;
     const entry = API_MODELS.find((m) => m.id === backend);
     return entry ? apiSource(entry.id, entry.label) : null;
-  }, [backend, model, tiny]);
+  }, [backend, model, tinySpec, tinySources]);
 
   const gen = useGeneration(source, keyHex, prompt ?? '', k, temperature, speed);
 
@@ -87,7 +88,7 @@ export default function Demo() {
       ? `model failed to load (${modelError}) — run: npm run build:model`
       : backend === 'trigram' && !model
         ? 'loading model…'
-        : backend === TINY_BACKEND_ID && !tiny
+        : tinySpec && !tinySources[tinySpec.id]
           ? (tinyStatus ?? 'loading…')
           : null;
 

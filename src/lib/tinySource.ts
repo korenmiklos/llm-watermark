@@ -5,20 +5,36 @@
 
 import type { ProbabilitySource, StepDistribution } from './source';
 
-export const TINY_BACKEND_ID = 'tiny';
-export const TINY_LABEL = 'TinyStories 15M (local, ~15 MB)';
-const MODEL_ID = 'Xenova/llama2.c-stories15M';
+export interface TinyModel {
+  id: string;
+  label: string;
+  hfId: string;
+}
+
+export const TINY_MODELS: TinyModel[] = [
+  { id: 'tiny-15m', label: 'TinyStories 15M (local, ~15 MB)', hfId: 'Xenova/llama2.c-stories15M' },
+  { id: 'tiny-110m', label: 'TinyStories 110M (local, ~60 MB)', hfId: 'Xenova/llama2.c-stories110M' },
+];
+
+// Legacy alias for the default tiny model.
+export const TINY_BACKEND_ID = TINY_MODELS[0].id;
+export const TINY_LABEL = TINY_MODELS[0].label;
 
 export type ProgressHandler = (message: string) => void;
 
-let cached: Promise<ProbabilitySource> | null = null;
+const cache = new Map<string, Promise<ProbabilitySource>>();
 
-export function loadTinySource(onProgress: ProgressHandler): Promise<ProbabilitySource> {
-  cached ??= build(onProgress).catch((err: unknown) => {
-    cached = null; // allow retry after a failed download
-    throw err;
-  });
-  return cached;
+export function loadTinySource(onProgress: ProgressHandler, model?: TinyModel): Promise<ProbabilitySource> {
+  const m = model ?? TINY_MODELS[0];
+  let p = cache.get(m.id);
+  if (!p) {
+    p = build(m, onProgress).catch((err: unknown) => {
+      cache.delete(m.id);
+      throw err;
+    });
+    cache.set(m.id, p);
+  }
+  return p;
 }
 
 interface ProgressInfo {
@@ -28,18 +44,18 @@ interface ProgressInfo {
   total?: number;
 }
 
-async function build(onProgress: ProgressHandler): Promise<ProbabilitySource> {
+async function build(spec: TinyModel, onProgress: ProgressHandler): Promise<ProbabilitySource> {
   const { AutoModelForCausalLM, AutoTokenizer, Tensor } = await import('@huggingface/transformers');
   const progress = (info: ProgressInfo) => {
     if (info.status === 'progress' && info.file?.endsWith('.onnx') && info.progress !== undefined) {
       const size = info.total ? ` of ${(info.total / 1e6).toFixed(0)} MB` : '';
-      onProgress(`downloading TinyStories 15M — ${Math.round(info.progress)}%${size}`);
+      onProgress(`downloading ${spec.label.split(' (')[0]} — ${Math.round(info.progress)}%${size}`);
     }
   };
   onProgress('loading tokenizer…');
-  const tokenizer = await AutoTokenizer.from_pretrained(MODEL_ID, { progress_callback: progress });
-  onProgress('downloading TinyStories 15M…');
-  const model = await AutoModelForCausalLM.from_pretrained(MODEL_ID, {
+  const tokenizer = await AutoTokenizer.from_pretrained(spec.hfId, { progress_callback: progress });
+  onProgress(`downloading ${spec.label.split(' (')[0]}…`);
+  const model = await AutoModelForCausalLM.from_pretrained(spec.hfId, {
     dtype: 'q8',
     progress_callback: progress,
   });
@@ -79,8 +95,8 @@ async function build(onProgress: ProgressHandler): Promise<ProbabilitySource> {
   };
 
   return {
-    id: TINY_BACKEND_ID,
-    label: TINY_LABEL,
+    id: spec.id,
+    label: spec.label,
     joiner: 'raw',
     async next(promptText, generated, temperature): Promise<StepDistribution> {
       const ids = [...promptIds(promptText), ...generated.map((t) => pieceToId.get(t) ?? 0)];
