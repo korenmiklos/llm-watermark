@@ -1,18 +1,22 @@
 // A tiny transformer as a ProbabilitySource running in the browser via
 // transformers.js. Full logits every step, so sampling is exactly
-// distortion-free. Weights are fetched from HF Hub and browser-cached.
+// distortion-free. Weights are served from Cloudflare R2 via a
+// Workers proxy at models-proxy.codedthinking.workers.dev.
+
+const MODEL_CDN = 'https://models-proxy.codedthinking.workers.dev/';
 
 import type { ProbabilitySource, StepDistribution } from './source';
 
 export interface TinyModel {
   id: string;
   label: string;
-  hfId: string;
+  hfId: string;   // HF repo ID (fallback)
+  cdnId: string;  // key prefix in R2
 }
 
 export const TINY_MODELS: TinyModel[] = [
-  { id: 'tiny-15m', label: 'TinyStories 15M (local, ~17 MB)', hfId: 'Xenova/llama2.c-stories15M' },
-  { id: 'tiny-110m', label: 'TinyStories 110M (local, ~110 MB)', hfId: 'Xenova/llama2.c-stories110M' },
+  { id: 'tiny-15m', label: 'TinyStories 15M (local, ~17 MB)', hfId: 'Xenova/llama2.c-stories15M', cdnId: 'stories15M' },
+  { id: 'tiny-110m', label: 'TinyStories 110M (local, ~110 MB)', hfId: 'Xenova/llama2.c-stories110M', cdnId: 'stories110M' },
 ];
 
 // Legacy alias for the default tiny model.
@@ -44,7 +48,13 @@ interface ProgressInfo {
 }
 
 async function build(spec: TinyModel, onProgress: ProgressHandler): Promise<ProbabilitySource> {
-  const { AutoModelForCausalLM, AutoTokenizer, Tensor } = await import('@huggingface/transformers');
+  const { AutoModelForCausalLM, AutoTokenizer, Tensor, env } = await import('@huggingface/transformers');
+
+  // Serve weights from Cloudflare R2 (fast CDN with CORS).
+  env.remoteHost = MODEL_CDN;
+  env.remotePathTemplate = '{model}/';
+  env.allowLocalModels = false;
+
   const progress = (info: ProgressInfo) => {
     if (info.status === 'progress' && info.file?.endsWith('.onnx') && info.progress !== undefined) {
       const size = info.total ? ` of ${(info.total / 1e6).toFixed(0)} MB` : '';
@@ -52,9 +62,9 @@ async function build(spec: TinyModel, onProgress: ProgressHandler): Promise<Prob
     }
   };
   onProgress('loading tokenizer…');
-  const tokenizer = await AutoTokenizer.from_pretrained(spec.hfId, { progress_callback: progress });
+  const tokenizer = await AutoTokenizer.from_pretrained(spec.cdnId, { progress_callback: progress });
   onProgress(`downloading ${spec.label.split(' (')[0]}…`);
-  const model = await AutoModelForCausalLM.from_pretrained(spec.hfId, {
+  const model = await AutoModelForCausalLM.from_pretrained(spec.cdnId, {
     dtype: 'q8',
     progress_callback: progress,
   });
@@ -97,6 +107,19 @@ async function build(spec: TinyModel, onProgress: ProgressHandler): Promise<Prob
     id: spec.id,
     label: spec.label,
     joiner: 'raw',
+    encode(text) {
+      if (!text) return [];
+      return tokenizer.encode(text, { add_special_tokens: false }).map((id) => pieces[id] ?? `<tok${id}>`);
+    },
+    decode(tokens) {
+      if (tokens.length === 0) return '';
+      const ids = tokens.map((piece) => {
+        const id = pieceToId.get(piece);
+        if (id === undefined) throw new Error(`unknown token piece: ${piece}`);
+        return id;
+      });
+      return tokenizer.decode(ids, { skip_special_tokens: true, clean_up_tokenization_spaces: false });
+    },
     async next(promptText, generated, temperature): Promise<StepDistribution> {
       const ids = [...promptIds(promptText), ...generated.map((t) => pieceToId.get(t) ?? 0)];
       const shape: [number, number] = [1, ids.length];
