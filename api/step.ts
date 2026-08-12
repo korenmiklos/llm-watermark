@@ -25,16 +25,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const key = process.env.OPENROUTER_API_KEY;
   if (!key) return res.status(500).json({ error: 'OPENROUTER_API_KEY not configured' });
 
-  // Assistant prefill gives true continuation semantics on the open-model
-  // providers; temperature stays 1 here — the demo applies its own
-  // temperature locally over the returned logprobs.
+  // System prompt turns the chat model into a completion engine.
+  // The user message is just the raw text to continue — no instructions
+  // mixed in, so the logprobs reflect the text distribution, not the
+  // model reasoning about what to do.
+  const textSoFar = generated.length > 0 ? `${prompt}${generated}` : prompt;
   const messages: { role: string; content: string }[] = [
-    {
-      role: 'user',
-      content: `Continue the following story in plain prose. Reply only with the continuation, no preamble.\n\n${prompt}`,
-    },
+    { role: 'system', content: 'You are a text completion engine. Output ONLY the next few words that naturally continue the text. No commentary, no formatting, no markdown.' },
+    { role: 'user', content: textSoFar },
   ];
-  if (generated.length > 0) messages.push({ role: 'assistant', content: generated });
 
   const body = JSON.stringify({
     model,
