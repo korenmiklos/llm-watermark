@@ -3,6 +3,7 @@
 
 import ScrubNumber from './ScrubNumber';
 import { API_MODELS } from '../lib/apiModels';
+import { TINY_BACKEND_ID, TINY_LABEL } from '../lib/tinySource';
 
 interface ControlSentenceProps {
   backend: string;
@@ -18,7 +19,7 @@ interface ControlSentenceProps {
 }
 
 export default function ControlSentence({ backend, onBackend, k, onK, temperature, onTemperature, speed, onSpeed, keyHex, onNewKey }: ControlSentenceProps) {
-  const isApi = backend !== 'trigram';
+  const isApi = backend !== 'trigram' && backend !== TINY_BACKEND_ID;
   return (
     <p className='max-w-prose text-[15px] leading-7 text-ink'>
       The{' '}
@@ -29,6 +30,7 @@ export default function ControlSentence({ backend, onBackend, k, onK, temperatur
         className='cursor-pointer appearance-none border-b border-dashed border-accent/60 bg-transparent font-mono text-accent'
       >
         <option value='trigram'>trigram (local)</option>
+        <option value={TINY_BACKEND_ID}>{TINY_LABEL}</option>
         {API_MODELS.map((m) => (
           <option key={m.id} value={m.id}>
             {m.label}

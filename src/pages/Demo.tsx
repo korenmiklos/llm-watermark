@@ -7,6 +7,8 @@ import { useGeneration } from '../hooks/useGeneration';
 import { API_MODELS } from '../lib/apiModels';
 import { apiSource } from '../lib/apiSource';
 import { bytesToHex, randomKeyBytes } from '../lib/prf';
+import type { ProbabilitySource } from '../lib/source';
+import { TINY_BACKEND_ID, loadTinySource } from '../lib/tinySource';
 import { knownIds, loadModel, trigramSource } from '../lib/trigram';
 import type { TrigramModel } from '../lib/trigram';
 
@@ -21,17 +23,41 @@ export default function Demo() {
   const [prompt, setPrompt] = useState<string | null>(null);
   const [autoPlay, setAutoPlay] = useState(false);
 
+  const [tiny, setTiny] = useState<ProbabilitySource | null>(null);
+  const [tinyStatus, setTinyStatus] = useState<string | null>(null);
+
   useEffect(() => {
     loadModel(`${import.meta.env.BASE_URL}model.json`)
       .then(setModel)
       .catch((err: unknown) => setModelError(err instanceof Error ? err.message : String(err)));
   }, []);
 
+  useEffect(() => {
+    if (backend !== TINY_BACKEND_ID || tiny) return;
+    let cancelled = false;
+    setTinyStatus('loading…');
+    loadTinySource((msg) => {
+      if (!cancelled) setTinyStatus(msg);
+    })
+      .then((s) => {
+        if (cancelled) return;
+        setTiny(s);
+        setTinyStatus(null);
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setTinyStatus(`model failed to load (${err instanceof Error ? err.message : String(err)})`);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [backend, tiny]);
+
   const source = useMemo(() => {
     if (backend === 'trigram') return model ? trigramSource(model) : null;
+    if (backend === TINY_BACKEND_ID) return tiny;
     const entry = API_MODELS.find((m) => m.id === backend);
     return entry ? apiSource(entry.id, entry.label) : null;
-  }, [backend, model]);
+  }, [backend, model, tiny]);
 
   const gen = useGeneration(source, keyHex, prompt ?? '', k, temperature, speed);
 
@@ -53,7 +79,9 @@ export default function Demo() {
       ? `model failed to load (${modelError}) — run: npm run build:model`
       : backend === 'trigram' && !model
         ? 'loading model…'
-        : null;
+        : backend === TINY_BACKEND_ID && !tiny
+          ? (tinyStatus ?? 'loading…')
+          : null;
 
   return (
     <article className='mx-auto w-full max-w-3xl'>
