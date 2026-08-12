@@ -1,9 +1,8 @@
-// Step-wise generation driver shared by the UI loop and the tests.
+// Step-wise generation driver shared by the tests and batch use.
 
-import { shannonEntropy } from './detector';
-import { importHmacKey, watermarkWindow, windowDigest } from './prf';
+import { importHmacKey } from './prf';
 import type { Sampler } from './sampler';
-import { probabilities } from './trigram';
+import { nextStep } from './step';
 import type { TrigramModel } from './trigram';
 
 export interface GenerationStep {
@@ -31,13 +30,9 @@ export async function* generate(
   const key = await importHmacKey(keyBytes);
   const history = [...promptIds];
   for (let i = 0; i < opts.maxTokens; i++) {
-    const w2 = history.length >= 1 ? history[history.length - 1] : model.bosId;
-    const w1 = history.length >= 2 ? history[history.length - 2] : model.bosId;
-    const probs = probabilities(model, w1, w2, opts.temperature);
-    const digest = await windowDigest(key, watermarkWindow(history, opts.k, model.bosId));
-    const { tokenId, r } = opts.sampler(probs, digest);
-    history.push(tokenId);
-    yield { index: i, tokenId, probs, r, entropy: shannonEntropy(probs) };
-    if (opts.stopAtEos && tokenId === model.eosId) return;
+    const step = await nextStep(model, key, history, opts.k, opts.temperature, opts.sampler);
+    history.push(step.tokenId);
+    yield { index: i, ...step };
+    if (opts.stopAtEos && step.tokenId === model.eosId) return;
   }
 }
