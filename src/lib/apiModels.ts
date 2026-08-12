@@ -9,7 +9,6 @@ export interface ApiModel {
 }
 
 export const API_MODELS: ApiModel[] = [
-  { id: 'google/gemma-3-27b-it', label: 'Gemma 3 27B', free: false },
-  { id: 'mistralai/mistral-nemo', label: 'Mistral Nemo', free: false },
-  { id: 'google/gemma-4-26b-a4b-it:free', label: 'Gemma 4 26B (free, slow)', free: true },
+  { id: 'meta-llama/llama-3.1-8b-instruct', label: 'Llama 3.1 8B', free: false },
+  { id: 'google/gemma-4-26b-a4b-it', label: 'Gemma 4 26B', free: false },
 ];
