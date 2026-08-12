@@ -52,6 +52,9 @@ export default function App() {
           </a>{' '}
           (CDLA-Sharing-1.0) · Watermark scheme: Aaronson (2022) · Everything runs in this page — nothing is sent anywhere
         </p>
+        <p className='mt-1 text-[11px] leading-5 text-grey'>
+          Of course, this is AI-generated: code by Claude Fable 5; text by GPT-5.6 Terra.
+        </p>
       </footer>
     </div>
   );
