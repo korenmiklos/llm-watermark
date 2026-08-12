@@ -11,6 +11,10 @@ detection power is bought with entropy, not with tokens.
 
 See `PLAN.md` for the full build plan.
 
+Lives at [the9x.ai/watermarking](https://the9x.ai/watermarking) (Vite `base`
+is set to `/watermarking/`; the dev server serves the app under that path
+too).
+
 ## Development
 
 ```sh

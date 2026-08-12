@@ -91,6 +91,18 @@ export default function Demo() {
         onK={setK}
         onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
       />
+
+      <aside className='mt-14 max-w-prose border-t border-ink/10 pt-5 text-[13px] leading-6 text-ink/55'>
+        This page is part of <span className='font-semibold text-ink/70'>the9x</span> — AI literacy for
+        researchers. For more AI × science content,{' '}
+        <a
+          href='https://the9x.ac'
+          className='text-accent underline decoration-dotted underline-offset-2 hover:decoration-solid'
+        >
+          sign up at the9x.ac
+        </a>
+        .
+      </aside>
     </article>
   );
 }
