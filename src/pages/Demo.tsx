@@ -4,8 +4,6 @@ import GenerationPane from '../components/GenerationPane';
 import PromptBar from '../components/PromptBar';
 import TryThis from '../components/TryThis';
 import { useGeneration } from '../hooks/useGeneration';
-import { API_MODELS } from '../lib/apiModels';
-import { apiSource } from '../lib/apiSource';
 import { bytesToHex, randomKeyBytes } from '../lib/prf';
 import type { ProbabilitySource } from '../lib/source';
 import { TINY_MODELS, loadTinySource } from '../lib/tinySource';
@@ -52,9 +50,8 @@ export default function Demo() {
 
   const source = useMemo(() => {
     if (tinySpec) return tinySources[tinySpec.id] ?? null;
-    const entry = API_MODELS.find((m) => m.id === backend);
-    return entry ? apiSource(entry.id, entry.label) : null;
-  }, [backend, tinySpec, tinySources]);
+    return null;
+  }, [tinySpec, tinySources]);
 
   const gen = useGeneration(source, keyHex, prompt ?? '', k, temperature);
 
@@ -97,7 +94,7 @@ export default function Demo() {
         </p>
         <p className='mt-4 font-mono text-[11px] text-grey'>
           Educational implementation of the <a href='#/explainer/aaronson' className='underline decoration-line underline-offset-2 hover:text-accent'>Aaronson (2022)</a> scheme
-          {' · '}pick a local or API model
+          {' · '}pick a local model
           {' · '}detection always runs in this page
         </p>
       </header>

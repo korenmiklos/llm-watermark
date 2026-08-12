@@ -10,9 +10,7 @@ detection power is bought with entropy, not with tokens.
 
 See `PLAN.md` for the full build plan.
 
-Lives at [the9x.ai/watermarking](https://the9x.ai/watermarking) (Vite `base`
-is set to `/watermarking/`; the dev server serves the app under that path
-too).
+Lives at [watermark.how](https://watermark.how).
 
 ## Backends
 
@@ -24,13 +22,6 @@ utf8 bytes, so any tokenizer works):
   use); full logits, exactly distortion-free
 - **TinyStories 110M (local)** — `Xenova/llama2.c-stories110M` (~60 MB);
   full logits, exactly distortion-free, better writer
-- **API models** — OpenRouter models exposing `top_logprobs` (see
-  `src/lib/apiModels.ts`); the demo samples over the renormalized top-20,
-  so distortion-free within that set. Requires `OPENROUTER_API_KEY` in the
-  deployment's env (Vercel); the serverless proxy is `api/step.ts`. The
-  watermark key never leaves the browser — the proxy only fetches logprobs.
-
-`scripts/list-logprobs-models.mjs` re-derives the pool of qualifying models.
 
 ## Development
 
@@ -39,8 +30,11 @@ npm install
 npm run dev
 ```
 
-For the API backend locally, run `vercel dev` with `OPENROUTER_API_KEY` set,
-or point `VITE_API_BASE` at a deployed instance.
+## Deployment
+
+The site is deployed to GitHub Pages via GitHub Actions (see
+`.github/workflows/deploy.yml`). Every push to `main` triggers a build and
+deploy. A custom domain (`watermark.how`) is configured via `public/CNAME`.
 
 ## Scripts
 

@@ -2,7 +2,6 @@
 // The model itself is one of the choices.
 
 import ScrubNumber from './ScrubNumber';
-import { API_MODELS } from '../lib/apiModels';
 import { TINY_MODELS } from '../lib/tinySource';
 
 interface ControlSentenceProps {
@@ -17,7 +16,6 @@ interface ControlSentenceProps {
 }
 
 export default function ControlSentence({ backend, onBackend, k, onK, temperature, onTemperature, keyHex, onNewKey }: ControlSentenceProps) {
-  const isApi = !TINY_MODELS.some((m) => m.id === backend);
   return (
     <p className='max-w-prose text-[15px] leading-7 text-ink'>
       The{' '}
@@ -29,11 +27,6 @@ export default function ControlSentence({ backend, onBackend, k, onK, temperatur
       >
         {TINY_MODELS.map((m) => (
           <option key={m.id} value={m.id}>{m.label}</option>
-        ))}
-        {API_MODELS.map((m) => (
-          <option key={m.id} value={m.id}>
-            {m.label}
-          </option>
         ))}
       </select>{' '}
       model generates at temperature{' '}
@@ -48,8 +41,7 @@ export default function ControlSentence({ backend, onBackend, k, onK, temperatur
       >
         (new key)
       </button>{' '}
-      into the randomness that picks the next word.
-      {isApi && ' API models reveal only their top-20 candidates, so sampling is distortion-free within that set.'}{' '}
+      into the randomness that picks the next word.{' '}
       <span className='text-[12px] text-grey'>Drag the red numbers.</span>
     </p>
   );
