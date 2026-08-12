@@ -63,9 +63,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const wait = (attempt + 1) * 800;
     await new Promise((r) => setTimeout(r, wait));
   }
-  if (!upstream!.ok) {
-    const detail = (await upstream!.text().catch(() => '')).slice(0, 300);
-    return res.status(upstream!.status === 429 ? 429 : 502).json({ error: `upstream ${upstream!.status}: ${detail}` });
+  if (!upstream) return res.status(502).json({ error: 'upstream request did not run' });
+  if (!upstream.ok) {
+    const detail = (await upstream.text().catch(() => '')).slice(0, 300);
+    return res.status(upstream.status === 429 ? 429 : 502).json({ error: `upstream ${upstream.status}: ${detail}` });
   }
   const data = (await upstream.json()) as {
     choices?: { logprobs?: { content?: { top_logprobs?: TopLogprob[] }[] } }[];
