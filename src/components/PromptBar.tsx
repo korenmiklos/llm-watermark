@@ -17,11 +17,14 @@ interface PromptBarProps {
   running: boolean;
   disabled: boolean;
   onPause: () => void;
+  onPlay: () => void;
+  canResume: boolean;
+  canStep: boolean;
   onStep: () => void;
   onReset: () => void;
 }
 
-export default function PromptBar({ onSubmit, running, disabled, onPause, onStep, onReset }: PromptBarProps) {
+export default function PromptBar({ onSubmit, running, disabled, onPause, onPlay, canResume, canStep, onStep, onReset }: PromptBarProps) {
   const [draft, setDraft] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,7 +34,12 @@ export default function PromptBar({ onSubmit, running, disabled, onPause, onStep
 
   const submit = () => {
     const text = draft.trim();
-    if (!text || disabled) return;
+    if (disabled) return;
+    if (!text && canResume) {
+      onPlay();
+      return;
+    }
+    if (!text) return;
     setDraft('');
     onSubmit(text);
   };
@@ -60,14 +68,14 @@ export default function PromptBar({ onSubmit, running, disabled, onPause, onStep
       ) : (
         <button
           onClick={submit}
-          disabled={disabled || !draft.trim()}
-          aria-label='send'
+          disabled={disabled || (!draft.trim() && !canResume)}
+          aria-label={draft.trim() ? 'send' : 'resume'}
           className='grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-white hover:bg-[#C41A20] disabled:opacity-40'
         >
           {sendIcon}
         </button>
       )}
-      <button onClick={onStep} disabled={disabled || running} className='font-mono text-xs text-grey hover:text-accent disabled:opacity-40'>
+      <button onClick={onStep} disabled={disabled || running || !canStep} className='font-mono text-xs text-grey hover:text-accent disabled:opacity-40'>
         step
       </button>
       <button onClick={onReset} disabled={disabled} className='font-mono text-xs text-grey hover:text-accent disabled:opacity-40'>

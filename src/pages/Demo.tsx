@@ -4,7 +4,8 @@ import GenerationPane from '../components/GenerationPane';
 import PromptBar from '../components/PromptBar';
 import TryThis from '../components/TryThis';
 import { useGeneration } from '../hooks/useGeneration';
-import { bytesToHex, randomKeyBytes } from '../lib/prf';
+import { detect } from '../lib/detector';
+import { bytesToHex, hexToBytes, randomKeyBytes } from '../lib/prf';
 import type { ProbabilitySource } from '../lib/source';
 import { TINY_MODELS, loadTinySource } from '../lib/tinySource';
 
@@ -15,6 +16,9 @@ export default function Demo() {
   const [keyHex, setKeyHex] = useState(() => bytesToHex(randomKeyBytes()));
   const [prompt, setPrompt] = useState<string | null>(null);
   const [autoPlay, setAutoPlay] = useState(false);
+  const [editText, setEditText] = useState<string | null>(null);
+  const [rescoring, setRescoring] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const [tinySources, setTinySources] = useState<Record<string, ProbabilitySource>>({});
   const [tinyStatus, setTinyStatus] = useState<string | null>(null);
@@ -56,6 +60,39 @@ export default function Demo() {
   const gen = useGeneration(source, keyHex, prompt ?? '', k, temperature);
 
   useEffect(() => {
+    if (editText === null || !source?.encode) return;
+    let cancelled = false;
+    setRescoring(true);
+    const timeout = window.setTimeout(() => {
+      try {
+        const pieces = source.encode!(editText);
+        detect(hexToBytes(keyHex), pieces, k)
+          .then((result) => {
+            if (!cancelled) {
+              gen.replaceHistory(pieces, result.tokens);
+              setEditError(null);
+            }
+          })
+          .catch((error: unknown) => {
+            if (!cancelled) setEditError(error instanceof Error ? error.message : String(error));
+          })
+          .finally(() => {
+            if (!cancelled) setRescoring(false);
+          });
+      } catch (error) {
+        if (!cancelled) {
+          setEditError(error instanceof Error ? error.message : String(error));
+          setRescoring(false);
+        }
+      }
+    }, 150);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeout);
+    };
+  }, [editText, source, keyHex, k]);
+
+  useEffect(() => {
     if (autoPlay && source && prompt) {
       gen.play();
       setAutoPlay(false);
@@ -70,6 +107,9 @@ export default function Demo() {
       : null;
 
   const restartFromPrompt = () => {
+    setEditText(null);
+    setEditError(null);
+    setRescoring(false);
     gen.reset();
     if (prompt) setAutoPlay(true);
   };
@@ -128,15 +168,33 @@ export default function Demo() {
       <figure className='flex flex-col' style={{ marginTop: '38px', gap: '14px' }}>
         <PromptBar
           onSubmit={(text) => {
+            setEditText(null);
             gen.reset();
             setPrompt(text);
             setAutoPlay(true);
           }}
           running={gen.running}
           disabled={!source}
-          onPause={gen.pause}
-          onStep={gen.stepOnce}
+          onPause={() => {
+            gen.pause();
+            if (source?.decode && gen.tokens.length > 0) {
+              setEditText(source.decode(gen.tokens.map((token) => token.text)));
+            }
+          }}
+          onPlay={() => {
+            setEditText(null);
+            gen.play();
+          }}
+          canResume={Boolean(prompt && (gen.tokens.length > 0 || editText !== null) && !rescoring && !editError)}
+          canStep={!rescoring && !editError}
+          onStep={() => {
+            setEditText(null);
+            gen.stepOnce();
+          }}
           onReset={() => {
+            setEditText(null);
+            setEditError(null);
+            setRescoring(false);
             gen.reset();
             setPrompt(null);
           }}
@@ -147,8 +205,14 @@ export default function Demo() {
           candidates={gen.candidates}
           log10InvP={gen.result.log10InvP}
           statusText={statusText}
-          notice={gen.error}
+          notice={editError ?? gen.error}
           joiner={source?.joiner ?? 'space'}
+          editText={editText}
+          onEditText={(text) => {
+            setRescoring(true);
+            setEditText(text);
+          }}
+          rescoring={rescoring}
         />
         <ControlSentence
           backend={backend}

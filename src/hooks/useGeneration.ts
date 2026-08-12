@@ -16,9 +16,9 @@ import { nextStep } from '../lib/step';
 export interface CommittedToken {
   text: string;
   r: number;
-  p: number;
+  p?: number;
   contribution: number;
-  entropy: number;
+  entropy?: number;
 }
 
 export interface Generation {
@@ -30,6 +30,7 @@ export interface Generation {
   play: () => void;
   pause: () => void;
   stepOnce: () => void;
+  replaceHistory: (tokens: readonly string[], scores: readonly TokenScore[]) => void;
   reset: () => void;
 }
 
@@ -52,10 +53,12 @@ export function useGeneration(
   const scoresRef = useRef<TokenScore[]>([]);
   const keyRef = useRef<CryptoKey | null>(null);
   const busyRef = useRef(false);
+  const versionRef = useRef(0);
   const liveRef = useRef({ k, temperature });
   liveRef.current = { k, temperature };
 
   const reset = useCallback(() => {
+    versionRef.current += 1;
     keyRef.current = null;
     generatedRef.current = [];
     scoresRef.current = [];
@@ -70,10 +73,12 @@ export function useGeneration(
   const doStep = useCallback(async () => {
     if (!source || busyRef.current || scoresRef.current.length >= MAX_TOKENS) return;
     busyRef.current = true;
+    const version = versionRef.current;
     try {
       if (!keyRef.current) keyRef.current = await importHmacKey(hexToBytes(keyHex));
       const { k: liveK, temperature: liveT } = liveRef.current;
       const outcome = await nextStep(source, keyRef.current, prompt, generatedRef.current, liveK, liveT, sampleWatermarked);
+      if (version !== versionRef.current) return;
       if (!outcome) {
         setRunning(false);
         return;
@@ -88,8 +93,10 @@ export function useGeneration(
       ]);
       setResult(summarize([...scoresRef.current]));
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
-      setRunning(false);
+      if (version === versionRef.current) {
+        setError(err instanceof Error ? err.message : String(err));
+        setRunning(false);
+      }
     } finally {
       busyRef.current = false;
     }
@@ -124,8 +131,25 @@ export function useGeneration(
       setError(null);
       setRunning(true);
     },
-    pause: () => setRunning(false),
+    pause: () => {
+      versionRef.current += 1;
+      setRunning(false);
+      setCandidates([]);
+    },
     stepOnce: () => void doStep(),
+    replaceHistory: (history, scores) => {
+      versionRef.current += 1;
+      generatedRef.current = [...history];
+      scoresRef.current = [...scores];
+      setTokens(scores.map((score) => ({
+        text: score.token,
+        r: score.r,
+        contribution: score.contribution,
+      })));
+      setCandidates([]);
+      setResult(summarize([...scores]));
+      setError(null);
+    },
     reset: () => {
       setRunning(false);
       reset();

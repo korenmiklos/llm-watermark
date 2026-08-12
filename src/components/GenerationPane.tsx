@@ -17,13 +17,16 @@ interface GenerationPaneProps {
   statusText: string | null;
   notice: string | null;
   joiner: 'space' | 'raw';
+  editText: string | null;
+  onEditText: (text: string) => void;
+  rescoring: boolean;
 }
 
 const DECADES = [0, 1, 2, 3, 4, 5, 6];
 const LIST_WIDTH = 176;
 const noSpaceBefore = (text: string) => /^[.,!?;:'")\]}]/.test(text);
 
-export default function GenerationPane({ promptDisplay, tokens, candidates, log10InvP, statusText, notice, joiner }: GenerationPaneProps) {
+export default function GenerationPane({ promptDisplay, tokens, candidates, log10InvP, statusText, notice, joiner, editText, onEditText }: GenerationPaneProps) {
   const [hover, setHover] = useState<number | null>(null);
   const flowRef = useRef<HTMLDivElement | null>(null);
   const caretRef = useRef<HTMLSpanElement | null>(null);
@@ -72,39 +75,78 @@ export default function GenerationPane({ promptDisplay, tokens, candidates, log1
           <span className='text-grey'>{statusText}</span>
         ) : !promptDisplay ? (
           <span className='text-grey'>Type a prompt above to start generating…</span>
-        ) : tokens.length === 0 ? (
+        ) : tokens.length === 0 && editText === null ? (
           <span className='text-grey'>Generating…</span>
         ) : (
           <>
             <span className='text-grey'>{promptDisplay}</span>
-            {tokens.map((token, i) =>
-              token.text === '<eos>' ? (
-                <span key={i} style={{ color: 'rgba(35,35,36,0.35)' }}> ¶{'\n'}</span>
-              ) : (
-                <span key={i}>
-                  {joiner === 'space' && !noSpaceBefore(token.text) && ' '}
-                  <span
-                    className='token-in cursor-default'
-                    style={{
-                      backgroundColor: `rgba(230, 30, 37, ${Math.min(0.42, 0.09 * token.contribution).toFixed(3)})`,
-                      borderRadius: '2px',
-                    }}
-                    onMouseEnter={() => setHover(i)}
-                    onMouseLeave={() => setHover(null)}
+            {editText !== null ? (
+              <>
+                <span
+                  ref={(el) => {
+                    // Set initial text only once; browser handles edits after
+                    if (el && !el.dataset.init) {
+                      el.textContent = editText;
+                      el.dataset.init = '1';
+                    }
+                  }}
+                  contentEditable
+                  suppressContentEditableWarning
+                  onInput={(e) => onEditText((e.target as HTMLElement).textContent ?? '')}
+                  className='outline-none'
+                  style={{ caretColor: '#232324' }}
+                />
+                {tokens.length > 0 && (
+                  <div className='mt-2 font-mono text-[13px] leading-7'>
+                    {tokens.map((token, i) => (
+                      <span
+                        key={i}
+                        className='cursor-default'
+                        style={{
+                          backgroundColor: `rgba(230, 30, 37, ${Math.min(0.42, 0.09 * token.contribution).toFixed(3)})`,
+                          borderRadius: '2px',
+                        }}
+                        onMouseEnter={() => setHover(i)}
+                        onMouseLeave={() => setHover(null)}
+                      >
+                        {prettyToken(token.text)}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {tokens.map((token, i) =>
+                  token.text === '<eos>' ? (
+                    <span key={i} style={{ color: 'rgba(35,35,36,0.35)' }}> ¶{'\n'}</span>
+                  ) : (
+                    <span key={i}>
+                      {joiner === 'space' && !noSpaceBefore(token.text) && ' '}
+                      <span
+                        className='token-in cursor-default'
+                        style={{
+                          backgroundColor: `rgba(230, 30, 37, ${Math.min(0.42, 0.09 * token.contribution).toFixed(3)})`,
+                          borderRadius: '2px',
+                        }}
+                        onMouseEnter={() => setHover(i)}
+                        onMouseLeave={() => setHover(null)}
+                      >
+                        {prettyToken(token.text)}
+                      </span>
+                    </span>
+                  ),
+                )}
+                <span ref={caretRef} className='caret-bar' aria-hidden='true' />
+                {candidates.length > 0 && (
+                  <div
+                    className='absolute z-10 transition-all duration-150 motion-reduce:transition-none'
+                    style={{ left: listPos.left, top: listPos.top, width: LIST_WIDTH }}
                   >
-                    {prettyToken(token.text)}
-                  </span>
-                </span>
-              ),
-            )}
-            <span ref={caretRef} className='caret-bar' aria-hidden='true' />
-            {candidates.length > 0 && (
-              <div
-                className='absolute z-10 transition-all duration-150 motion-reduce:transition-none'
-                style={{ left: listPos.left, top: listPos.top, width: LIST_WIDTH }}
-              >
-                <CandidateList candidates={candidates} />
-              </div>
+                    <CandidateList candidates={candidates} />
+                  </div>
+                )}
+              </>
             )}
           </>
         )}
@@ -130,7 +172,7 @@ export default function GenerationPane({ promptDisplay, tokens, candidates, log1
             borderRadius: '4px',
           }}
         >
-          r {hovered.r.toFixed(3)} · p {hovered.p.toFixed(3)} · −ln(1−r) {hovered.contribution.toFixed(2)}
+          r {hovered.r.toFixed(3)}{hovered.p === undefined ? '' : ` · p ${hovered.p.toFixed(3)}`} · −ln(1−r) {hovered.contribution.toFixed(2)}
         </div>
       )}
     </section>

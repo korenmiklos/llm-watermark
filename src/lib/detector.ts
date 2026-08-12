@@ -37,6 +37,10 @@ export function summarize(tokens: TokenScore[]): DetectionResult {
 // derivation as generation, one HMAC per position.
 export async function detect(keyBytes: Uint8Array, tokens: readonly string[], k: number): Promise<DetectionResult> {
   const key = await importHmacKey(keyBytes);
+  return detectWithKey(key, tokens, k);
+}
+
+export async function detectWithKey(key: CryptoKey, tokens: readonly string[], k: number): Promise<DetectionResult> {
   const scores: TokenScore[] = [];
   for (let t = 0; t < tokens.length; t++) {
     const digest = await windowDigest(key, watermarkWindow(tokens.slice(0, t), k));
