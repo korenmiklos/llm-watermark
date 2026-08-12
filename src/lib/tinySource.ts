@@ -11,8 +11,8 @@ export interface TinyModel {
 }
 
 export const TINY_MODELS: TinyModel[] = [
-  { id: 'tiny-15m', label: 'TinyStories 15M (local, ~15 MB)', hfId: 'Xenova/llama2.c-stories15M' },
-  { id: 'tiny-110m', label: 'TinyStories 110M (local, ~60 MB)', hfId: 'Xenova/llama2.c-stories110M' },
+  { id: 'tiny-15m', label: 'TinyStories 15M (local, ~17 MB)', hfId: 'Xenova/llama2.c-stories15M' },
+  { id: 'tiny-110m', label: 'TinyStories 110M (local, ~50 MB)', hfId: 'Xenova/llama2.c-stories110M' },
 ];
 
 // Legacy alias for the default tiny model.
