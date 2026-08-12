@@ -9,6 +9,13 @@ interface TryThisProps {
 const link = 'text-accent underline decoration-dotted underline-offset-2 hover:decoration-solid';
 
 const ITEMS: ((props: TryThisProps) => React.ReactNode)[] = [
+  () => (
+    <>
+      Let the box turn red, then stop generation and edit the continuation in place. Delete a phrase, swap words, or
+      rewrite a sentence while watching the watermark score. Your challenge: how little can you change and still get
+      the box back to blue?
+    </>
+  ),
   ({ onTemperature }) => (
     <>
       Turn the temperature down — from{' '}

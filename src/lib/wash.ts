@@ -1,8 +1,8 @@
 // The confidence wash: log10(1/p) drives the generation window's background
-// from ground lavender at 0 to a red tint past 6.
+// from cool blue at 0 to a red tint past 6.
 // Single-hue ramp — low saturation so text sits on top of it.
 
-const GROUND = [242, 241, 250];   // #F2F1FA
+const GROUND = [232, 239, 250];   // #E8EFFA
 const RED    = [230, 30, 37];     // #E61E25
 const TINT   = 0.12;
 

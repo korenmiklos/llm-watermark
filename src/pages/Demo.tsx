@@ -158,6 +158,10 @@ export default function Demo() {
           chooses the next token without changing the distribution when the full candidate distribution is available.
           Test the finished text with the same key, and statistical evidence accumulates token by token as colour.
         </p>
+        <p className='mt-4 max-w-prose text-[17px] leading-8 text-ink'>
+          Then stop the generator and edit its continuation directly. The watermark is rescored as you type. How much
+          rewriting does it take to push the box from red back toward blue?
+        </p>
         <p className='mt-4 font-mono text-[11px] text-grey'>
           Educational implementation of the <a href='#/explainer/aaronson' className='underline decoration-line underline-offset-2 hover:text-accent'>Aaronson (2022)</a> scheme
           {' · '}pick a local model
@@ -225,9 +229,10 @@ export default function Demo() {
           onNewKey={updateKey}
         />
         <figcaption className='max-w-prose text-[12.5px] leading-5 text-grey'>
-          Colour shows accumulated evidence, log₁₀(1/p), on the scale at left. Pale lavender is compatible with the
-          null; deep red is unusually aligned with this key. Each token is shaded by its own draw r (hover for
-          numbers). In the dropdown, order is the model&apos;s preference p, the dot is the key&apos;s draw r, and ↵ marks the winner.
+          Colour shows accumulated evidence, log₁₀(1/p), on the scale at left. Cool blue is compatible with the null;
+          deep red is unusually aligned with this key. Each token is shaded by its own draw r (hover for numbers). In
+          the dropdown, order is the model&apos;s preference p, the dot is the key&apos;s draw r, and ↵ marks the winner. Stop
+          generation to turn the continuation into an editor; its colours and score update as you rewrite it.
         </figcaption>
       </figure>
 
