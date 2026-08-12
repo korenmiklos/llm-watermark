@@ -69,6 +69,31 @@ export default function Demo() {
       ? (tinyStatus ?? 'loading…')
       : null;
 
+  const restartFromPrompt = () => {
+    gen.reset();
+    if (prompt) setAutoPlay(true);
+  };
+
+  const updateBackend = (id: string) => {
+    restartFromPrompt();
+    setBackend(id);
+  };
+
+  const updateTemperature = (value: number) => {
+    restartFromPrompt();
+    setTemperature(value);
+  };
+
+  const updateWindow = (value: number) => {
+    restartFromPrompt();
+    setK(value);
+  };
+
+  const updateKey = () => {
+    restartFromPrompt();
+    setKeyHex(bytesToHex(randomKeyBytes()));
+  };
+
   return (
     <article className='mx-auto w-full max-w-3xl'>
       <header>
@@ -127,13 +152,13 @@ export default function Demo() {
         />
         <ControlSentence
           backend={backend}
-          onBackend={setBackend}
+          onBackend={updateBackend}
           k={k}
-          onK={setK}
+          onK={updateWindow}
           temperature={temperature}
-          onTemperature={setTemperature}
+          onTemperature={updateTemperature}
           keyHex={keyHex}
-          onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
+          onNewKey={updateKey}
         />
         <figcaption className='max-w-prose text-[12.5px] leading-5 text-grey'>
           Colour shows accumulated evidence, log₁₀(1/p), on the scale at left. Pale lavender is compatible with the
@@ -142,10 +167,10 @@ export default function Demo() {
         </figcaption>
       </figure>
 
-      <TryThis
-        onTemperature={setTemperature}
-        onK={setK}
-        onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
+        <TryThis
+          onTemperature={updateTemperature}
+          onK={updateWindow}
+          onNewKey={updateKey}
       />
 
       <aside className='mt-14 max-w-prose border-t border-line pt-5 text-[13px] leading-6 text-grey'>
