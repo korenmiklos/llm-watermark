@@ -46,12 +46,17 @@ async function build(onProgress: ProgressHandler): Promise<ProbabilitySource> {
   onProgress('warming up…');
 
   // id <-> piece tables. Piece strings are the token identity everywhere.
-  const tm = (tokenizer as unknown as { model: { vocab?: string[]; tokens_to_ids?: Map<string, number> } }).model;
+  // transformers.js v4 nests the vocab under _tokenizer.model, not .model.
+  const tm = (tokenizer as unknown as {
+    _tokenizer?: { model?: { vocab?: string[]; tokens_to_ids?: Map<string, number> } };
+    model?: { vocab?: string[]; tokens_to_ids?: Map<string, number> };
+  });
+  const inner = tm._tokenizer?.model ?? tm.model;
   let pieces: string[] = [];
-  if (Array.isArray(tm.vocab) && typeof tm.vocab[0] === 'string') {
-    pieces = tm.vocab.slice();
-  } else if (tm.tokens_to_ids instanceof Map) {
-    for (const [tok, id] of tm.tokens_to_ids) pieces[id] = tok;
+  if (inner && Array.isArray(inner.vocab) && typeof inner.vocab[0] === 'string') {
+    pieces = inner.vocab.slice();
+  } else if (inner?.tokens_to_ids instanceof Map) {
+    for (const [tok, id] of inner.tokens_to_ids) pieces[id] = tok;
   } else {
     throw new Error('tokenizer vocabulary not accessible');
   }
