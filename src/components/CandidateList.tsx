@@ -9,17 +9,28 @@ const visible = (text: string) => text.replace(/ /g, '␣').replace(/\n/g, '⏎'
 export default function CandidateList({ candidates }: { candidates: Candidate[] }) {
   const maxP = candidates.reduce((m, c) => Math.max(m, c.p), 0);
   return (
-    <ul className='overflow-hidden rounded-md border border-ink/15 bg-white shadow-lg'>
+    <ul
+      className='overflow-hidden bg-white'
+      style={{
+        border: '1px solid #D4D2E3',
+        borderRadius: '6px',
+        boxShadow: '4px 10px 35px rgba(151,149,181,0.30)',
+      }}
+    >
       {candidates.map((c, i) => (
         <li
           key={i}
           title={`p ${c.p.toFixed(4)} · r ${c.r.toFixed(4)} · ln(r)/p ${c.score.toFixed(1)}`}
-          className={`flex items-center gap-2 px-2.5 py-1 font-mono text-xs ${c.winner ? 'bg-accent/10' : ''}`}
+          className={`flex items-center gap-2 font-mono text-xs ${c.winner ? 'bg-accent/10' : ''}`}
+          style={{
+            padding: '4px 10px',
+            borderTop: i > 0 ? '1px solid #D4D2E3' : undefined,
+          }}
         >
           <span
             aria-hidden='true'
             className='h-2.5 w-2.5 shrink-0 rounded-full'
-            style={{ backgroundColor: `rgba(168, 81, 75, ${c.r.toFixed(3)})` }}
+            style={{ backgroundColor: `rgba(230, 30, 37, ${c.r.toFixed(3)})` }}
           />
           <span className='truncate' style={{ opacity: 0.45 + 0.55 * (maxP > 0 ? c.p / maxP : 0) }}>
             {visible(c.text)}

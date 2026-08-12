@@ -20,7 +20,7 @@ interface ControlSentenceProps {
 export default function ControlSentence({ backend, onBackend, k, onK, temperature, onTemperature, speed, onSpeed, keyHex, onNewKey }: ControlSentenceProps) {
   const isApi = backend !== 'trigram';
   return (
-    <p className='max-w-prose text-[15px] leading-7 text-ink/75'>
+    <p className='max-w-prose text-[15px] leading-7 text-ink'>
       The{' '}
       <select
         value={backend}
@@ -42,7 +42,7 @@ export default function ControlSentence({ backend, onBackend, k, onK, temperatur
       . Each step hashes the previous{' '}
       <ScrubNumber label='watermark window k' value={k} min={1} max={6} step={1} pixelsPerStep={22} onChange={onK} format={(v) => `${v} token${v === 1 ? '' : 's'}`} />{' '}
       with the secret key{' '}
-      <code className='font-mono text-[13px] tabular-nums text-ink/70' title={keyHex}>{keyHex.slice(0, 8)}…</code>{' '}
+      <code className='font-mono text-[13px] tabular-nums text-grey' title={keyHex}>{keyHex.slice(0, 8)}…</code>{' '}
       <button
         className='text-accent underline decoration-dotted underline-offset-2 hover:decoration-solid'
         onClick={onNewKey}
@@ -51,7 +51,7 @@ export default function ControlSentence({ backend, onBackend, k, onK, temperatur
       </button>{' '}
       into the randomness that picks the next word.
       {isApi && ' API models reveal only their top-20 candidates, so sampling is distortion-free within that set.'}{' '}
-      <span className='text-[12px] text-ink/40'>Drag the blue numbers.</span>
+      <span className='text-[12px] text-grey'>Drag the red numbers.</span>
     </p>
   );
 }

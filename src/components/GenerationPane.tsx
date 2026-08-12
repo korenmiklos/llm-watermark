@@ -42,41 +42,52 @@ export default function GenerationPane({ promptDisplay, tokens, candidates, log1
   return (
     <section
       aria-label='generation'
-      className='relative flex min-h-96 rounded-sm border border-ink/15 transition-colors duration-500'
-      style={{ backgroundColor: washColor(log10InvP) }}
+      className='relative flex transition-colors duration-500'
+      style={{
+        backgroundColor: washColor(log10InvP),
+        minHeight: '384px',
+        border: '1px solid #D4D2E3',
+        borderRadius: '2px',
+      }}
     >
-      <div className='relative w-7 shrink-0 border-r border-ink/10' aria-hidden='true'>
-        <div className='absolute inset-y-3 left-0 right-0 font-mono text-[9px] text-ink/40'>
+      <div className='relative w-7 shrink-0' style={{ borderRight: '1px solid #D4D2E3' }} aria-hidden='true'>
+        <div className='absolute inset-y-3 left-0 right-0 font-mono text-[9px] text-grey'>
           {DECADES.map((d) => (
             <span key={d} className='absolute left-1.5 -translate-y-1/2' style={{ top: `${(1 - d / 6) * 100}%` }}>
               {d}
             </span>
           ))}
           <div
-            className='absolute right-0 h-0.5 w-2.5 bg-ink/60 transition-all duration-300'
-            style={{ top: `${(1 - washFraction(log10InvP)) * 100}%` }}
+            className='absolute right-0 h-0.5 w-2.5 transition-all duration-300'
+            style={{
+              top: `${(1 - washFraction(log10InvP)) * 100}%`,
+              backgroundColor: '#232324',
+            }}
           />
         </div>
       </div>
       <div ref={flowRef} className='relative flex-1 whitespace-pre-wrap p-5 pb-44 font-mono text-[15px] leading-8'>
         {statusText ? (
-          <span className='text-ink/50'>{statusText}</span>
+          <span className='text-grey'>{statusText}</span>
         ) : !promptDisplay ? (
-          <span className='text-ink/40'>Type a prompt above to start generating…</span>
+          <span className='text-grey'>Type a prompt above to start generating…</span>
         ) : tokens.length === 0 ? (
-          <span className='text-ink/40'>Generating…</span>
+          <span className='text-grey'>Generating…</span>
         ) : (
           <>
-            <span className='text-ink/50'>{promptDisplay}</span>
+            <span className='text-grey'>{promptDisplay}</span>
             {tokens.map((token, i) =>
               token.text === '<eos>' ? (
-                <span key={i} className='text-ink/30'> ¶{'\n'}</span>
+                <span key={i} style={{ color: 'rgba(35,35,36,0.35)' }}> ¶{'\n'}</span>
               ) : (
                 <span key={i}>
                   {joiner === 'space' && !noSpaceBefore(token.text) && ' '}
                   <span
-                    className='token-in cursor-default rounded-xs'
-                    style={{ backgroundColor: `rgba(168, 81, 75, ${Math.min(0.5, 0.11 * token.contribution).toFixed(3)})` }}
+                    className='token-in cursor-default'
+                    style={{
+                      backgroundColor: `rgba(230, 30, 37, ${Math.min(0.42, 0.09 * token.contribution).toFixed(3)})`,
+                      borderRadius: '2px',
+                    }}
                     onMouseEnter={() => setHover(i)}
                     onMouseLeave={() => setHover(null)}
                   >
@@ -98,12 +109,26 @@ export default function GenerationPane({ promptDisplay, tokens, candidates, log1
         )}
       </div>
       {notice && (
-        <div className='absolute bottom-2 left-10 z-20 max-w-md rounded border border-ink/10 bg-white/90 px-2 py-1 font-mono text-[10px] text-ink/70'>
+        <div
+          className='absolute bottom-2 left-10 z-20 max-w-md px-2 py-1 font-mono text-[10px] text-ink'
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.92)',
+            border: '1px solid #D4D2E3',
+            borderRadius: '4px',
+          }}
+        >
           ⚠ {notice}
         </div>
       )}
       {hovered && (
-        <div className='pointer-events-none absolute bottom-2 right-3 z-20 rounded border border-ink/10 bg-white/90 px-2 py-1 font-mono text-[10px] tabular-nums text-ink/80'>
+        <div
+          className='pointer-events-none absolute bottom-2 right-3 z-20 px-2 py-1 font-mono text-[10px] tabular-nums text-ink'
+          style={{
+            backgroundColor: 'rgba(255,255,255,0.92)',
+            border: '1px solid #D4D2E3',
+            borderRadius: '4px',
+          }}
+        >
           r {hovered.r.toFixed(3)} · p {hovered.p.toFixed(3)} · −ln(1−r) {hovered.contribution.toFixed(2)}
         </div>
       )}

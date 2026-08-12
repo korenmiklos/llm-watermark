@@ -47,13 +47,13 @@ export default function PromptBar({ onSubmit, running, disabled, onPause, onStep
         placeholder='Write a horror story in 12 words'
         aria-label='prompt'
         disabled={running}
-        className='min-w-40 flex-1 rounded-lg border border-ink/15 bg-white px-3 py-2 font-mono text-sm placeholder:text-ink/30 focus:border-accent focus-visible:outline-none disabled:opacity-50'
+        className='min-w-40 flex-1 border-b border-line bg-transparent px-1 py-2 font-mono text-sm text-ink placeholder:text-grey focus:border-accent focus-visible:outline-none disabled:opacity-50'
       />
       {running ? (
         <button
           onClick={onPause}
           aria-label='pause'
-          className='grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/10 text-ink/60 hover:bg-ink/15'
+          className='grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-white hover:bg-[#C41A20]'
         >
           {pauseIcon}
         </button>
@@ -62,15 +62,15 @@ export default function PromptBar({ onSubmit, running, disabled, onPause, onStep
           onClick={submit}
           disabled={disabled || !draft.trim()}
           aria-label='send'
-          className='grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-white hover:bg-accent/90 disabled:opacity-40'
+          className='grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-white hover:bg-[#C41A20] disabled:opacity-40'
         >
           {sendIcon}
         </button>
       )}
-      <button onClick={onStep} disabled={disabled || running} className='text-xs text-ink/50 hover:text-accent disabled:opacity-40'>
+      <button onClick={onStep} disabled={disabled || running} className='font-mono text-xs text-grey hover:text-accent disabled:opacity-40'>
         step
       </button>
-      <button onClick={onReset} disabled={disabled} className='text-xs text-ink/50 hover:text-accent disabled:opacity-40'>
+      <button onClick={onReset} disabled={disabled} className='font-mono text-xs text-grey hover:text-accent disabled:opacity-40'>
         reset
       </button>
     </div>

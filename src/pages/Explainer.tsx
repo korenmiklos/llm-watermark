@@ -18,24 +18,33 @@ const SECTIONS: [string, string, string][] = [
 export default function Explainer() {
   return (
     <article className='mx-auto w-full max-w-prose'>
-      <p className='text-[11px] font-semibold uppercase tracking-[0.18em] text-accent'>Notes</p>
-      <h1 className='mt-3 font-heading text-3xl font-semibold leading-tight tracking-tight'>How the watermark works</h1>
+      <p className='font-mono text-xs font-medium uppercase tracking-[0.18em] text-grey'>Notes</p>
+      <h1 className='mt-3 font-heading text-[34px] font-bold leading-tight tracking-tight text-navy'>How the watermark works</h1>
       <div className='mt-8 flex flex-col gap-7'>
         {SECTIONS.map(([id, title, body]) => (
           <section key={id} id={id}>
-            <h2 className='font-heading text-lg font-semibold tracking-tight'>{title}</h2>
-            <p className='mt-1.5 text-[15px] leading-7 text-ink/75'>{body}</p>
+            <h2 className='font-heading text-lg font-bold tracking-tight text-navy'>{title}</h2>
+            <p className='mt-1.5 text-[15px] leading-7 text-ink'>{body}</p>
           </section>
         ))}
         <section>
-          <h2 className='font-heading text-lg font-semibold tracking-tight'>References</h2>
-          <ul className='mt-2 flex list-disc flex-col gap-1.5 pl-5 text-sm leading-6 text-ink/70'>
+          <h2 className='font-heading text-lg font-bold tracking-tight text-navy'>References</h2>
+          <div className='mt-2 flex flex-col'>
             {REFERENCES.map((ref) => (
-              <li key={ref}>{ref}</li>
+              <p
+                key={ref}
+                className='text-sm leading-relaxed text-grey'
+                style={{
+                  borderTop: '1px solid #D4D2E3',
+                  padding: '10px 0',
+                }}
+              >
+                {ref}
+              </p>
             ))}
-          </ul>
+          </div>
         </section>
-        <p className='border-t border-ink/10 pt-4 text-xs leading-5 text-ink/50'>
+        <p className='text-xs leading-5 text-grey' style={{ borderTop: '1px solid #D4D2E3', paddingTop: '16px' }}>
           Footnote: this demo expands each HMAC-SHA256 digest with a non-cryptographic PRNG (splitmix64 seeding
           xoshiro128**). That weakens the formal unforgeability guarantee while leaving the statistics exactly
           uniform — the right trade for a demo, not for production.

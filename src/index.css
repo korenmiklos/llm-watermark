@@ -1,19 +1,56 @@
 @import 'tailwindcss';
 
+@font-face {
+  font-family: 'Brockmann';
+  src: url('/fonts/brockmann-regular-webfont.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Brockmann';
+  src: url('/fonts/brockmann-regularitalic-webfont.woff2') format('woff2');
+  font-weight: 400;
+  font-style: italic;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Brockmann';
+  src: url('/fonts/brockmann-medium-webfont.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Brockmann';
+  src: url('/fonts/brockmann-semibold-webfont.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Brockmann';
+  src: url('/fonts/brockmann-bold-webfont.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @theme {
-  --color-ground: #eef0f2;
-  --color-ink: #16181c;
-  --color-accent: #2b3fa8;
-  /* Sage and brick are reserved for the statistic — never chrome. */
-  --color-sage: #7c9a72;
-  --color-brick: #a8514b;
-  --font-sans: 'IBM Plex Sans', system-ui, sans-serif;
-  --font-heading: 'IBM Plex Sans Condensed', 'IBM Plex Sans', system-ui, sans-serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+  --color-ground: #F2F1FA;
+  --color-ink: #232324;
+  --color-accent: #E61E25;
+  --color-navy: #1D1D40;
+  --color-slate: #5D5A88;
+  --color-grey: #9795B5;
+  --color-line: #D4D2E3;
+  --font-sans: 'Brockmann', 'Helvetica Neue', Arial, sans-serif;
+  --font-heading: 'Brockmann', 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'DM Mono', ui-monospace, monospace;
 }
 
 body {
-  /* Editorial white page; the ground grey is the figure's neutral wash. */
+  /* Editorial white page; the ground colour is the figure's neutral wash. */
   background-color: #ffffff;
   color: var(--color-ink);
   font-family: var(--font-sans);

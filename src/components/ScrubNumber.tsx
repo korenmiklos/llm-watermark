@@ -51,7 +51,10 @@ export default function ScrubNumber({ label, value, min, max, step, onChange, fo
           onChange(quantize(value - step));
         }
       }}
-      className='cursor-ew-resize touch-none select-none border-b border-dashed border-accent/60 font-mono tabular-nums text-accent'
+      className='cursor-ew-resize touch-none select-none font-mono tabular-nums text-accent'
+      style={{
+        borderBottom: '1px dashed rgba(230,30,37,0.55)',
+      }}
     >
       {format ? format(value) : String(value)}
     </span>

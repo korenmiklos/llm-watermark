@@ -58,23 +58,34 @@ export default function Demo() {
   return (
     <article className='mx-auto w-full max-w-3xl'>
       <header>
-        <p className='text-[11px] font-semibold uppercase tracking-[0.18em] text-accent'>Interactive explainer</p>
-        <h1 className='mt-3 max-w-2xl font-heading text-4xl font-semibold leading-tight tracking-tight'>
-          A watermark you can't see, but can measure
+        <p className='font-mono text-xs font-medium uppercase tracking-[0.18em] text-grey'>Interactive explainer</p>
+        <h1
+          className='mt-3 font-heading font-bold text-navy'
+          style={{ fontSize: '44px', lineHeight: 1.15, letterSpacing: '-0.02em', maxWidth: '672px' }}
+        >
+          How does AI watermarking work?
         </h1>
-        <p className='mt-5 max-w-prose text-[17px] leading-8 text-ink/70'>
+        <p className='mt-3.5 text-[22px] leading-[1.4] text-slate' style={{ marginTop: '14px' }}>
+          A watermark you can't see, but can measure.
+        </p>
+        <p className='max-w-[65ch] text-[17px] leading-8 text-ink' style={{ marginTop: '26px' }}>
+          The EU AI Act obliges providers to mark AI-generated content so that it can be detected as
+          machine-made. Text is the hard case: there are no pixels to perturb, only word choices. The
+          scheme below is the one most often proposed for it, running live in this page.
+        </p>
+        <p className='mt-4 max-w-prose text-[17px] leading-8 text-ink'>
           Every word below is chosen by a language model — and secretly nudged by a cryptographic key. The text
           reads normally, and provably follows the model's own distribution. Yet score it against the key, and
           evidence that it is machine-written pools out of the noise, token by token, as color.
         </p>
-        <p className='mt-4 font-mono text-[11px] text-ink/45'>
-          <a href='#/explainer/aaronson' className='underline decoration-ink/25 underline-offset-2 hover:text-accent'>Aaronson (2022)</a> scheme
+        <p className='mt-4 font-mono text-[11px] text-grey'>
+          <a href='#/explainer/aaronson' className='underline decoration-line underline-offset-2 hover:text-accent'>Aaronson (2022)</a> scheme
           {' · '}pick a local or API model
           {' · '}detection always runs in this page
         </p>
       </header>
 
-      <figure className='mt-9 flex flex-col gap-3'>
+      <figure className='flex flex-col' style={{ marginTop: '38px', gap: '14px' }}>
         <PromptBar
           onSubmit={(text) => {
             gen.reset();
@@ -97,7 +108,7 @@ export default function Demo() {
           log10InvP={gen.result.log10InvP}
           statusText={statusText}
           notice={gen.error}
-          joiner={backend === 'trigram' ? 'space' : 'raw'}
+          joiner={source?.joiner ?? 'space'}
         />
         <ControlSentence
           backend={backend}
@@ -111,9 +122,9 @@ export default function Demo() {
           keyHex={keyHex}
           onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
         />
-        <figcaption className='max-w-prose text-[12.5px] leading-5 text-ink/50'>
-          The window's color is the accumulated evidence, log₁₀(1/p) on the scale at left — sage could be anyone's
-          text; brick is this key's signature. Each token is shaded by its own draw r (hover for numbers). In the
+        <figcaption className='max-w-prose text-[12.5px] leading-5 text-grey'>
+          The window's color is the accumulated evidence, log₁₀(1/p) on the scale at left — unwashed lavender could be anyone's
+          text; deep red is this key's signature. Each token is shaded by its own draw r (hover for numbers). In the
           dropdown, order is the model's preference p, the dot is the key's preference r, and ↵ marks the winner.
         </figcaption>
       </figure>
@@ -124,8 +135,8 @@ export default function Demo() {
         onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
       />
 
-      <aside className='mt-14 max-w-prose border-t border-ink/10 pt-5 text-[13px] leading-6 text-ink/55'>
-        This page is part of <span className='font-semibold text-ink/70'>the9x</span> — AI literacy for
+      <aside className='mt-14 max-w-prose border-t border-line pt-5 text-[13px] leading-6 text-grey'>
+        This page is part of <span className='font-semibold text-ink'>the9x</span> — AI literacy for
         researchers. For more AI × science content,{' '}
         <a
           href='https://the9x.ac'

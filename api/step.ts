@@ -36,28 +36,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   ];
   if (generated.length > 0) messages.push({ role: 'assistant', content: generated });
 
-  const upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      authorization: `Bearer ${key}`,
-      'content-type': 'application/json',
-      'http-referer': 'https://the9x.ai/watermarking',
-      'x-title': 'LLM watermarking demo',
-    },
-    body: JSON.stringify({
-      model,
-      messages,
-      max_tokens: 1,
-      temperature: 1,
-      logprobs: true,
-      top_logprobs: 20,
-      // Never route to an endpoint that would silently drop logprobs.
-      provider: { require_parameters: true },
-    }),
+  const body = JSON.stringify({
+    model,
+    messages,
+    max_tokens: 1,
+    temperature: 1,
+    logprobs: true,
+    top_logprobs: 20,
+    // Never route to an endpoint that would silently drop logprobs.
+    provider: { require_parameters: true },
   });
-  if (!upstream.ok) {
-    const detail = (await upstream.text().catch(() => '')).slice(0, 300);
-    return res.status(upstream.status === 429 ? 429 : 502).json({ error: `upstream ${upstream.status}: ${detail}` });
+  const headers = {
+    authorization: `Bearer ${key}`,
+    'content-type': 'application/json',
+    'http-referer': 'https://watermark.how',
+    'x-title': 'watermark.how demo',
+  };
+
+  // Retry up to 3 times on 429 with exponential backoff.
+  let upstream: Response | null = null;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    upstream = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST', headers, body,
+    });
+    if (upstream.status !== 429) break;
+    const wait = (attempt + 1) * 800;
+    await new Promise((r) => setTimeout(r, wait));
+  }
+  if (!upstream!.ok) {
+    const detail = (await upstream!.text().catch(() => '')).slice(0, 300);
+    return res.status(upstream!.status === 429 ? 429 : 502).json({ error: `upstream ${upstream!.status}: ${detail}` });
   }
   const data = (await upstream.json()) as {
     choices?: { logprobs?: { content?: { top_logprobs?: TopLogprob[] }[] } }[];
