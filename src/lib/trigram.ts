@@ -40,7 +40,11 @@ export function prepareModel(json: ModelJson): TrigramModel {
 export async function loadModel(url: string): Promise<TrigramModel> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`model fetch failed: ${res.status}`);
-  return prepareModel((await res.json()) as ModelJson);
+  const json = await res.json();
+  if (!json?.vocab || !json?.unigram) {
+    throw new Error('invalid model.json — run: npm run build:model');
+  }
+  return prepareModel(json as ModelJson);
 }
 
 // p(w | w1, w2) = 0.70 p_tri + 0.25 p_bi + 0.05 p_uni; missing contexts
