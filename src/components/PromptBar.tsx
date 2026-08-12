@@ -44,7 +44,7 @@ export default function PromptBar({ onSubmit, running, disabled, onPause, onStep
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && submit()}
-        placeholder='Write a horror story in 12 words'
+        placeholder='The growling sound was coming from behind.'
         aria-label='prompt'
         disabled={running}
         className='min-w-40 flex-1 border-b border-line bg-transparent px-1 py-2 font-mono text-sm text-ink placeholder:text-grey focus:border-accent focus-visible:outline-none disabled:opacity-50'
