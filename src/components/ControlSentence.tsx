@@ -12,14 +12,12 @@ interface ControlSentenceProps {
   onK: (k: number) => void;
   temperature: number;
   onTemperature: (t: number) => void;
-  speed: number;
-  onSpeed: (s: number) => void;
   keyHex: string;
   onNewKey: () => void;
 }
 
-export default function ControlSentence({ backend, onBackend, k, onK, temperature, onTemperature, speed, onSpeed, keyHex, onNewKey }: ControlSentenceProps) {
-  const isApi = backend !== 'trigram' && !TINY_MODELS.some((m) => m.id === backend);
+export default function ControlSentence({ backend, onBackend, k, onK, temperature, onTemperature, keyHex, onNewKey }: ControlSentenceProps) {
+  const isApi = !TINY_MODELS.some((m) => m.id === backend);
   return (
     <p className='max-w-prose text-[15px] leading-7 text-ink'>
       The{' '}
@@ -29,7 +27,6 @@ export default function ControlSentence({ backend, onBackend, k, onK, temperatur
         aria-label='language model'
         className='cursor-pointer appearance-none border-b border-dashed border-accent/60 bg-transparent font-mono text-accent'
       >
-        <option value='trigram'>trigram (local)</option>
         {TINY_MODELS.map((m) => (
           <option key={m.id} value={m.id}>{m.label}</option>
         ))}
@@ -39,9 +36,7 @@ export default function ControlSentence({ backend, onBackend, k, onK, temperatur
           </option>
         ))}
       </select>{' '}
-      model{backend === 'trigram' ? <> emits{' '}
-      <ScrubNumber label='speed' value={speed} min={2} max={20} step={1} pixelsPerStep={10} onChange={onSpeed} format={(v) => `${v} tokens`} />{' '}
-      a second at</> : ' generates at'} temperature{' '}
+      model generates at temperature{' '}
       <ScrubNumber label='temperature' value={temperature} min={0.1} max={1.5} step={0.05} onChange={onTemperature} format={(v) => v.toFixed(2)} />
       . Each step hashes the previous{' '}
       <ScrubNumber label='watermark window k' value={k} min={1} max={10} step={1} pixelsPerStep={22} onChange={onK} format={(v) => `${v} token${v === 1 ? '' : 's'}`} />{' '}

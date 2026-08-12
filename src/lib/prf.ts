@@ -1,6 +1,6 @@
 // The PRF shared by generation and detection. Tokens are identified by
-// their utf8 bytes, so the same code serves any backend — trigram words,
-// BPE pieces from a local transformer, or token strings from an API.
+// their utf8 bytes, so the same code serves any backend — BPE pieces
+// from a local transformer or token strings from an API.
 // One HMAC per step over the window; per-candidate uniforms are expanded
 // from the digest with splitmix64 (a non-cryptographic trade, footnoted
 // on the explainer page).

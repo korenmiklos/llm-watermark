@@ -1,8 +1,8 @@
 # LLM watermarking demo — build plan
 
-A static web app that shows how Aaronson's watermarking scheme works, using a
-trigram language model so everything runs client-side with no download and no
-backend.
+A static web app that shows how Aaronson's watermarking scheme works, using
+TinyStories transformer models (15M and 110M) so everything runs client-side
+with no backend.
 
 ## Goal
 
@@ -32,8 +32,7 @@ Exactly three, plus transport. Resist adding more.
 3. Secret key — a "new key" button that rerolls it, and a display of the current
    key so people see determinism.
 
-Transport: play / pause / step / reset, and a speed slider (2–20 tokens per
-second).
+Transport: play / pause / step / reset.
 
 ---
 
@@ -49,12 +48,11 @@ relative paths only, one responsibility per module. Build scripts live in
 `scripts/` as real files, never as inline heredocs.
 
 ```
-scripts/build-model.mjs      # corpus download + trigram counts -> public/model.json
 src/lib/prf.ts               # HMAC + PRNG expansion -> r vector
 src/lib/sampler.ts           # plain and watermarked next-token selection
 src/lib/detector.ts          # score, p-value, entropy accounting
 src/lib/gamma.ts             # regularized incomplete gamma + lgamma
-src/lib/trigram.ts           # model loading, interpolated probabilities
+src/lib/tinySource.ts        # TinyStories transformer via transformers.js
 src/components/...           # UI
 src/pages/Demo.tsx
 src/pages/Explainer.tsx
@@ -63,56 +61,17 @@ test/                        # vitest, node environment, no DOM needed
 
 ---
 
-## Step 1 — Corpus and model (half a day)
+## Step 1 — Language model (half a day)
 
-Source: `TinyStories-valid.txt` from the Hugging Face dataset
-`roneneldan/TinyStories`, 19.4 MB, license CDLA-Sharing-1.0. Direct URL:
+**Update:** The original trigram model built from TinyStories corpus has been
+replaced by TinyStories transformer models (15M and 110M parameters) from
+`Xenova/llama2.c-stories15M` and `Xenova/llama2.c-stories110M`, running in the
+browser via transformers.js. These provide full logits (exactly distortion-free
+sampling) and produce far more coherent text than the trigram model did.
 
-```
-https://huggingface.co/datasets/roneneldan/TinyStories/resolve/main/TinyStories-valid.txt
-```
-
-TinyStories is the right corpus because it is deliberately simple English, so a
-trigram model produces text that reads as coherent rather than as word salad,
-and the vocabulary is small enough that drawing a full `r` vector every step
-costs nothing. Attribute the dataset and its license in the app footer.
-
-The dataset's "2000 word vocabulary" description is not accurate — there are
-encoding artifacts and a long tail of rare types. The build script must clean
-rather than trust it.
-
-`scripts/build-model.mjs` does:
-
-1. Download to `scratch/` (gitignored), skip if already present.
-2. Split on `<|endoftext|>`, drop any story containing non-ASCII bytes.
-3. Tokenize with `/[A-Za-z']+|[.,!?;:"]/g`, preserving case.
-4. Build the vocabulary from the top 4096 types by frequency, plus `<bos>` and
-   `<eos>`. Discard any story containing an out-of-vocabulary token rather than
-   emitting `<unk>` — cleaner generation, and the corpus is far larger than
-   needed.
-5. Count unigrams, bigrams and trigrams. Prune bigram and trigram contexts seen
-   fewer than 3 times. Write `public/model.json` as
-   `{vocab: string[], unigram: number[], bigram: {...}, trigram: {...}}` where
-   each context maps to parallel `ids` and `counts` arrays.
-
-Target output under 5 MB gzipped. If it exceeds that, raise the prune threshold
-before shrinking the vocabulary — vocabulary size is what makes the generated
-text readable.
-
-**Probabilities.** Interpolate with fixed weights so every token has nonzero
-probability, which the sampling rule requires:
-
-```
-p(w | w1, w2) = 0.70 * p_tri + 0.25 * p_bi + 0.05 * p_uni
-```
-
-Missing trigram or bigram contexts contribute zero and the remaining weights are
-renormalized. Apply temperature to the interpolated vector: `p ∝ p^(1/T)`, then
-renormalize.
-
-Note for clarity: the trigram order (2 tokens of model context) and the
-watermark window `k` are unrelated. Do not tie them together in code or in the
-UI.
+The `scripts/build-model.mjs` corpus builder and `src/lib/trigram.ts` module
+have been removed. The transformer models are lazy-loaded from the HF hub on
+first use (~15 MB for the 15M model, ~60 MB for the 110M model).
 
 ---
 

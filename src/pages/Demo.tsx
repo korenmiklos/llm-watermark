@@ -9,28 +9,17 @@ import { apiSource } from '../lib/apiSource';
 import { bytesToHex, randomKeyBytes } from '../lib/prf';
 import type { ProbabilitySource } from '../lib/source';
 import { TINY_MODELS, loadTinySource } from '../lib/tinySource';
-import { knownIds, loadModel, trigramSource } from '../lib/trigram';
-import type { TrigramModel } from '../lib/trigram';
 
 export default function Demo() {
-  const [model, setModel] = useState<TrigramModel | null>(null);
-  const [modelError, setModelError] = useState<string | null>(null);
-  const [backend, setBackend] = useState('trigram');
+  const [backend, setBackend] = useState(TINY_MODELS[0].id);
   const [k, setK] = useState(6);
   const [temperature, setTemperature] = useState(0.8);
   const [keyHex, setKeyHex] = useState(() => bytesToHex(randomKeyBytes()));
-  const [speed, setSpeed] = useState(8);
   const [prompt, setPrompt] = useState<string | null>(null);
   const [autoPlay, setAutoPlay] = useState(false);
 
   const [tinySources, setTinySources] = useState<Record<string, ProbabilitySource>>({});
   const [tinyStatus, setTinyStatus] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadModel(`${import.meta.env.BASE_URL}model.json`)
-      .then(setModel)
-      .catch((err: unknown) => setModelError(err instanceof Error ? err.message : String(err)));
-  }, []);
 
   // Prefetch the default tiny model in the background.
   useEffect(() => {
@@ -62,13 +51,12 @@ export default function Demo() {
   }, [tinySpec, tinySources]);
 
   const source = useMemo(() => {
-    if (backend === 'trigram') return model ? trigramSource(model) : null;
     if (tinySpec) return tinySources[tinySpec.id] ?? null;
     const entry = API_MODELS.find((m) => m.id === backend);
     return entry ? apiSource(entry.id, entry.label) : null;
-  }, [backend, model, tinySpec, tinySources]);
+  }, [backend, tinySpec, tinySources]);
 
-  const gen = useGeneration(source, keyHex, prompt ?? '', k, temperature, speed);
+  const gen = useGeneration(source, keyHex, prompt ?? '', k, temperature);
 
   useEffect(() => {
     if (autoPlay && source && prompt) {
@@ -77,20 +65,12 @@ export default function Demo() {
     }
   }, [autoPlay, source, prompt, gen]);
 
-  const promptDisplay = useMemo(() => {
-    if (!prompt) return '';
-    if (backend !== 'trigram') return prompt;
-    return model ? knownIds(model, prompt).map((id) => model.vocab[id]).join(' ') : prompt;
-  }, [backend, model, prompt]);
+  const promptDisplay = prompt ?? '';
 
   const statusText =
-    backend === 'trigram' && modelError
-      ? `model failed to load (${modelError}) — run: npm run build:model`
-      : backend === 'trigram' && !model
-        ? 'loading model…'
-        : tinySpec && !tinySources[tinySpec.id]
-          ? (tinyStatus ?? 'loading…')
-          : null;
+    tinySpec && !tinySources[tinySpec.id]
+      ? (tinyStatus ?? 'loading…')
+      : null;
 
   return (
     <article className='mx-auto w-full max-w-3xl'>
@@ -103,20 +83,20 @@ export default function Demo() {
           How does AI watermarking work?
         </h1>
         <p className='mt-3.5 text-[22px] leading-[1.4] text-slate' style={{ marginTop: '14px' }}>
-          A watermark you can't see, but can measure.
+          A statistical signature you cannot see, but can test.
         </p>
         <p className='max-w-[65ch] text-[17px] leading-8 text-ink' style={{ marginTop: '26px' }}>
-          The EU AI Act obliges providers to mark AI-generated content so that it can be detected as
-          machine-made. Text is the hard case: there are no pixels to perturb, only word choices. The
-          scheme below is the one most often proposed for it, running live in this page.
+          The EU AI Act requires providers of generative AI to make AI-generated content identifiable. Text is the
+          hard case: there are no pixels to perturb, only choices among plausible next words. This page lets you
+          inspect one influential research approach as it runs.
         </p>
         <p className='mt-4 max-w-prose text-[17px] leading-8 text-ink'>
-          Every word below is chosen by a language model — and secretly nudged by a cryptographic key. The text
-          reads normally, and provably follows the model's own distribution. Yet score it against the key, and
-          evidence that it is machine-written pools out of the noise, token by token, as color.
+          At every step, the model supplies probabilities and a secret key supplies randomness. Their combination
+          chooses the next token without changing the distribution when the full candidate distribution is available.
+          Test the finished text with the same key, and statistical evidence accumulates token by token as colour.
         </p>
         <p className='mt-4 font-mono text-[11px] text-grey'>
-          <a href='#/explainer/aaronson' className='underline decoration-line underline-offset-2 hover:text-accent'>Aaronson (2022)</a> scheme
+          Educational implementation of the <a href='#/explainer/aaronson' className='underline decoration-line underline-offset-2 hover:text-accent'>Aaronson (2022)</a> scheme
           {' · '}pick a local or API model
           {' · '}detection always runs in this page
         </p>
@@ -154,15 +134,13 @@ export default function Demo() {
           onK={setK}
           temperature={temperature}
           onTemperature={setTemperature}
-          speed={speed}
-          onSpeed={setSpeed}
           keyHex={keyHex}
           onNewKey={() => setKeyHex(bytesToHex(randomKeyBytes()))}
         />
         <figcaption className='max-w-prose text-[12.5px] leading-5 text-grey'>
-          The window's color is the accumulated evidence, log₁₀(1/p) on the scale at left — unwashed lavender could be anyone's
-          text; deep red is this key's signature. Each token is shaded by its own draw r (hover for numbers). In the
-          dropdown, order is the model's preference p, the dot is the key's preference r, and ↵ marks the winner.
+          Colour shows accumulated evidence, log₁₀(1/p), on the scale at left. Pale lavender is compatible with the
+          null; deep red is unusually aligned with this key. Each token is shaded by its own draw r (hover for
+          numbers). In the dropdown, order is the model&apos;s preference p, the dot is the key&apos;s draw r, and ↵ marks the winner.
         </figcaption>
       </figure>
 
@@ -173,15 +151,15 @@ export default function Demo() {
       />
 
       <aside className='mt-14 max-w-prose border-t border-line pt-5 text-[13px] leading-6 text-grey'>
-        This page is part of <span className='font-semibold text-ink'>the9x</span> — AI literacy for
-        researchers. For more AI × science content,{' '}
+        This is an educational demonstration, not a description of the watermarking methods used by major AI labs.
+        It is part of <span className='font-semibold text-ink'>The 9x Academic</span>, which publishes clear,
+        research-minded AI × science content.{' '}
         <a
           href='https://the9x.ac'
           className='text-accent underline decoration-dotted underline-offset-2 hover:decoration-solid'
         >
-          sign up at the9x.ac
+          Sign up at The 9x Academic →
         </a>
-        .
       </aside>
     </article>
   );

@@ -1,7 +1,6 @@
 // A tiny transformer as a ProbabilitySource: llama2.c-stories15M (trained
 // on TinyStories) running in the browser via transformers.js. Full logits
-// every step, so sampling is exactly distortion-free — and the model is a
-// far better writer than the trigram.
+// every step, so sampling is exactly distortion-free.
 
 import type { ProbabilitySource, StepDistribution } from './source';
 

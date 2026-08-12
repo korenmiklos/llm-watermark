@@ -1,7 +1,7 @@
 // The demo engine: a requestAnimationFrame loop drives one watermarked
-// generation step per 1/speed seconds against any ProbabilitySource.
-// Temperature and speed apply live; source, key, k or prompt changes reset
-// the run (they invalidate scoring).
+// generation step against any ProbabilitySource, firing as fast as the
+// backend allows. Temperature applies live; source, key, k or prompt
+// changes reset the run (they invalidate scoring).
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { topCandidates } from '../lib/candidates';
@@ -41,7 +41,6 @@ export function useGeneration(
   prompt: string,
   k: number,
   temperature: number,
-  speed: number,
 ): Generation {
   const [tokens, setTokens] = useState<CommittedToken[]>([]);
   const [candidates, setCandidates] = useState<Candidate[]>([]);
@@ -53,8 +52,8 @@ export function useGeneration(
   const scoresRef = useRef<TokenScore[]>([]);
   const keyRef = useRef<CryptoKey | null>(null);
   const busyRef = useRef(false);
-  const liveRef = useRef({ k, temperature, speed });
-  liveRef.current = { k, temperature, speed };
+  const liveRef = useRef({ k, temperature });
+  liveRef.current = { k, temperature };
 
   const reset = useCallback(() => {
     keyRef.current = null;
@@ -99,13 +98,9 @@ export function useGeneration(
   useEffect(() => {
     if (!running || !source) return;
     let raf = 0;
-    let last = performance.now();
-    const isApi = source.joiner === 'raw' || source.id !== 'trigram';
-    const tick = (now: number) => {
-      // API backends: fire as fast as the network allows (busyRef gates it).
-      // Local backends: throttle to the speed slider.
-      if (!busyRef.current && (isApi || now - last >= 1000 / liveRef.current.speed)) {
-        last = now;
+    const tick = () => {
+      // Fire as fast as the backend allows; busyRef gates concurrency.
+      if (!busyRef.current) {
         void doStep();
       }
       raf = requestAnimationFrame(tick);

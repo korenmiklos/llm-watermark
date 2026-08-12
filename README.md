@@ -1,8 +1,7 @@
 # llm-watermark
 
-A static web demo of Aaronson's LLM watermarking scheme, driven by a trigram
-language model so everything runs client-side — no download at runtime beyond
-the model JSON, no backend.
+A static web demo of Aaronson's LLM watermarking scheme, driven by TinyStories
+transformer models so everything runs client-side — no backend required.
 
 Watch text generate token by token: the model's probability `p` fights the
 secret pseudorandom vector `r`, and a confidence indicator behind the text
@@ -20,11 +19,11 @@ too).
 The watermark machinery is backend-agnostic (tokens are identified by their
 utf8 bytes, so any tokenizer works):
 
-- **trigram (local)** — full distribution, exactly distortion-free; built
-  from TinyStories by `npm run build:model`
 - **TinyStories 15M (local)** — `Xenova/llama2.c-stories15M` running in the
   browser via transformers.js (lazy-loaded, ~15 MB from the HF hub on first
-  use); full logits, exactly distortion-free, and a much better writer
+  use); full logits, exactly distortion-free
+- **TinyStories 110M (local)** — `Xenova/llama2.c-stories110M` (~60 MB);
+  full logits, exactly distortion-free, better writer
 - **API models** — OpenRouter models exposing `top_logprobs` (see
   `src/lib/apiModels.ts`); the demo samples over the renormalized top-20,
   so distortion-free within that set. Requires `OPENROUTER_API_KEY` in the
@@ -37,7 +36,6 @@ utf8 bytes, so any tokenizer works):
 
 ```sh
 npm install
-npm run build:model   # downloads TinyStories once, writes public/model.json
 npm run dev
 ```
 
@@ -49,17 +47,15 @@ or point `VITE_API_BASE` at a deployed instance.
 - `npm run dev` — Vite dev server
 - `npm run build` — typecheck + production build
 - `npm test` — vitest (unit tests + the five statistical acceptance tests)
-- `npm run build:model` — corpus download + trigram counts → `public/model.json`
 
 ## Layout
 
 ```
-scripts/build-model.mjs      corpus download + trigram counts -> public/model.json
 src/lib/prf.ts               HMAC + PRNG expansion -> r vector
 src/lib/sampler.ts           plain and watermarked next-token selection
 src/lib/detector.ts          score, p-value, entropy accounting
 src/lib/gamma.ts             regularized incomplete gamma + lgamma
-src/lib/trigram.ts           model loading, interpolated probabilities
+src/lib/tinySource.ts        TinyStories transformer via transformers.js
 src/lib/generate.ts          step-wise generation driver
 src/components/              UI
 src/pages/Demo.tsx
@@ -69,6 +65,6 @@ test/                        vitest, node environment, no DOM needed
 
 ## Attribution
 
-Trigram model built from the
+Language models trained on the
 [TinyStories](https://huggingface.co/datasets/roneneldan/TinyStories) dataset
 (roneneldan/TinyStories, CDLA-Sharing-1.0).

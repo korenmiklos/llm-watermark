@@ -1,5 +1,5 @@
-// A backend is anything that yields a next-token distribution: the local
-// trigram, a local transformer, or an API that reveals top-20 logprobs.
+// A backend is anything that yields a next-token distribution: a local
+// transformer or an API that reveals top-20 logprobs.
 
 export interface StepDistribution {
   // Candidate token texts, aligned with probs. May be the full vocabulary
