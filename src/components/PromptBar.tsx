@@ -1,6 +1,8 @@
-const playIcon = (
-  <svg viewBox='0 0 16 16' className='ml-0.5 h-4 w-4 fill-current' aria-hidden='true'>
-    <path d='M4 2.5v11l9-5.5z' />
+import { useState, useRef, useEffect } from 'react';
+
+const sendIcon = (
+  <svg viewBox='0 0 16 16' className='h-4 w-4 fill-current' aria-hidden='true'>
+    <path d='M1.5 1.5l13 6.5-13 6.5V9l8-1-8-1z' />
   </svg>
 );
 
@@ -11,35 +13,60 @@ const pauseIcon = (
 );
 
 interface PromptBarProps {
-  prompt: string;
-  onPrompt: (p: string) => void;
+  onSubmit: (prompt: string) => void;
   running: boolean;
   disabled: boolean;
-  onPlayPause: () => void;
+  onPause: () => void;
   onStep: () => void;
   onReset: () => void;
 }
 
-export default function PromptBar({ prompt, onPrompt, running, disabled, onPlayPause, onStep, onReset }: PromptBarProps) {
+export default function PromptBar({ onSubmit, running, disabled, onPause, onStep, onReset }: PromptBarProps) {
+  const [draft, setDraft] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    inputRef.current?.focus();
+  }, []);
+
+  const submit = () => {
+    const text = draft.trim();
+    if (!text || disabled) return;
+    setDraft('');
+    onSubmit(text);
+  };
+
   return (
-    <div className='flex items-center gap-4'>
-      <button
-        onClick={onPlayPause}
-        disabled={disabled}
-        aria-label={running ? 'pause' : 'play'}
-        className='grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent text-white hover:bg-accent/90 disabled:opacity-40'
-      >
-        {running ? pauseIcon : playIcon}
-      </button>
+    <div className='flex items-center gap-3'>
       <input
+        ref={inputRef}
         type='text'
-        value={prompt}
-        onChange={(e) => onPrompt(e.target.value)}
-        placeholder='prompt — seeds the text, never scored'
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && submit()}
+        placeholder='Write a horror story in 12 words'
         aria-label='prompt'
-        title='Seeds generation; not scored. Out-of-vocabulary words are dropped.'
-        className='min-w-40 flex-1 border-0 border-b border-ink/20 bg-transparent px-0 py-1.5 font-mono text-sm placeholder:text-ink/35 focus:border-accent focus-visible:outline-none'
+        disabled={running}
+        className='min-w-40 flex-1 rounded-lg border border-ink/15 bg-white px-3 py-2 font-mono text-sm placeholder:text-ink/30 focus:border-accent focus-visible:outline-none disabled:opacity-50'
       />
+      {running ? (
+        <button
+          onClick={onPause}
+          aria-label='pause'
+          className='grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/10 text-ink/60 hover:bg-ink/15'
+        >
+          {pauseIcon}
+        </button>
+      ) : (
+        <button
+          onClick={submit}
+          disabled={disabled || !draft.trim()}
+          aria-label='send'
+          className='grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-white hover:bg-accent/90 disabled:opacity-40'
+        >
+          {sendIcon}
+        </button>
+      )}
       <button onClick={onStep} disabled={disabled || running} className='text-xs text-ink/50 hover:text-accent disabled:opacity-40'>
         step
       </button>

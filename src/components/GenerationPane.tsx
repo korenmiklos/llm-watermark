@@ -10,7 +10,7 @@ import { EOS } from '../lib/trigram';
 import { washColor, washFraction } from '../lib/wash';
 
 interface GenerationPaneProps {
-  promptTokens: string[];
+  prompt: string | null;
   tokens: CommittedToken[];
   candidates: Candidate[];
   log10InvP: number;
@@ -21,7 +21,7 @@ const DECADES = [0, 1, 2, 3, 4, 5, 6];
 const LIST_WIDTH = 176;
 const noSpaceBefore = (text: string) => /^[.,!?;:]$/.test(text);
 
-export default function GenerationPane({ promptTokens, tokens, candidates, log10InvP, statusText }: GenerationPaneProps) {
+export default function GenerationPane({ prompt, tokens, candidates, log10InvP, statusText }: GenerationPaneProps) {
   const [hover, setHover] = useState<number | null>(null);
   const flowRef = useRef<HTMLDivElement | null>(null);
   const caretRef = useRef<HTMLSpanElement | null>(null);
@@ -60,9 +60,12 @@ export default function GenerationPane({ promptTokens, tokens, candidates, log10
       <div ref={flowRef} className='relative flex-1 p-5 pb-44 font-mono text-[15px] leading-8'>
         {statusText ? (
           <span className='text-ink/50'>{statusText}</span>
+        ) : !prompt ? (
+          <span className='text-ink/40'>Type a prompt above to start generating…</span>
+        ) : tokens.length === 0 ? (
+          <span className='text-ink/40'>Generating…</span>
         ) : (
           <>
-            <span className='text-ink/50'>{promptTokens.join(' ')}</span>
             {tokens.map((token, i) =>
               token.text === EOS ? (
                 <span key={i} className='text-ink/30'> ¶<br /></span>

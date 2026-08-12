@@ -14,7 +14,14 @@ function useHashRoute(): string {
 
 export default function App() {
   const route = useHashRoute();
-  const isExplainer = route === '#/explainer';
+  const isExplainer = route.startsWith('#/explainer');
+  const section = isExplainer ? route.replace('#/explainer', '').replace('/', '') : null;
+
+  useEffect(() => {
+    if (section) {
+      setTimeout(() => document.getElementById(section)?.scrollIntoView({ behavior: 'smooth' }), 50);
+    }
+  }, [section]);
   const link = (active: boolean) => (active ? 'text-accent' : 'text-ink/50 hover:text-accent');
   return (
     <div className='flex min-h-screen flex-col'>

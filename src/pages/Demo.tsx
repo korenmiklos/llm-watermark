@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import ControlSentence from '../components/ControlSentence';
 import GenerationPane from '../components/GenerationPane';
 import PromptBar from '../components/PromptBar';
 import TryThis from '../components/TryThis';
 import { useGeneration } from '../hooks/useGeneration';
 import { bytesToHex, randomKeyBytes } from '../lib/prf';
-import { knownIds, loadModel } from '../lib/trigram';
+import { loadModel } from '../lib/trigram';
 import type { TrigramModel } from '../lib/trigram';
 
 export default function Demo() {
@@ -15,7 +15,8 @@ export default function Demo() {
   const [temperature, setTemperature] = useState(1.0);
   const [keyHex, setKeyHex] = useState(() => bytesToHex(randomKeyBytes()));
   const [speed, setSpeed] = useState(8);
-  const [prompt, setPrompt] = useState('Once upon a time');
+  const [prompt, setPrompt] = useState<string | null>(null);
+  const [autoPlay, setAutoPlay] = useState(false);
 
   useEffect(() => {
     loadModel(`${import.meta.env.BASE_URL}model.json`)
@@ -23,11 +24,14 @@ export default function Demo() {
       .catch((err: unknown) => setModelError(err instanceof Error ? err.message : String(err)));
   }, []);
 
-  const gen = useGeneration(model, keyHex, prompt, k, temperature, speed);
-  const promptTokens = useMemo(
-    () => (model ? knownIds(model, prompt).map((id) => model.vocab[id]) : []),
-    [model, prompt],
-  );
+  const gen = useGeneration(model, keyHex, prompt ?? '', k, temperature, speed);
+
+  useEffect(() => {
+    if (autoPlay && model && prompt) {
+      gen.play();
+      setAutoPlay(false);
+    }
+  }, [autoPlay, model, prompt, gen]);
 
   const statusText = modelError
     ? `model failed to load (${modelError}) — run: npm run build:model`
@@ -48,22 +52,30 @@ export default function Demo() {
           evidence that it is machine-written pools out of the noise, token by token, as color.
         </p>
         <p className='mt-4 font-mono text-[11px] text-ink/45'>
-          Aaronson (2022) scheme · trigram language model · generation and detection run in this page
+          <a href='#/explainer/aaronson' className='underline decoration-ink/25 underline-offset-2 hover:text-accent'>Aaronson (2022)</a> scheme
+          {' · '}<a href='#/explainer/sampling-rule' className='underline decoration-ink/25 underline-offset-2 hover:text-accent'>trigram</a> language model
+          {' · '}generation and detection run in this page
         </p>
       </header>
 
       <figure className='mt-9 flex flex-col gap-3'>
         <PromptBar
-          prompt={prompt}
-          onPrompt={setPrompt}
+          onSubmit={(text) => {
+            gen.reset();
+            setPrompt(text);
+            setAutoPlay(true);
+          }}
           running={gen.running}
           disabled={!model}
-          onPlayPause={() => (gen.running ? gen.pause() : gen.play())}
+          onPause={gen.pause}
           onStep={gen.stepOnce}
-          onReset={gen.reset}
+          onReset={() => {
+            gen.reset();
+            setPrompt(null);
+          }}
         />
         <GenerationPane
-          promptTokens={promptTokens}
+          prompt={prompt}
           tokens={gen.tokens}
           candidates={gen.candidates}
           log10InvP={gen.result.log10InvP}

@@ -292,13 +292,19 @@ bar animation).
 
 ---
 
-## Stretch — page 3, editing attacks (a day)
+## Stretch — inline editing attacks (a day)
 
-Only after everything above ships. Detection needs no model, so this page works
+Only after everything above ships. Detection needs no model, so this works
 with zero download.
 
-Make the generated text a token-level editor. On each edit, re-tokenize and
-recompute the score, animating both the total and the per-token contributions.
+The editor is **not a separate page** — it lives inside the generation pane
+itself. Once generation stops (pause, completion, or capacity), the response
+text becomes editable inline, with a lightweight contenteditable or a minimal
+code editor (e.g. CodeMirror 6 — simpler and smaller than Monaco). Watermark
+coloring reacts immediately to each keystroke: re-tokenize the edited text,
+recompute the score, and update per-token tints and the background wash in
+real time.
+
 The instructive part is showing *which* positions an edit invalidates: changing
 token `t` corrupts the windows feeding positions `t+1` through `t+k`, so a
 one-word change knocks out `k` terms and the rest survives. Colour those
