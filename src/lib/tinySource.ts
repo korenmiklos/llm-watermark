@@ -53,11 +53,18 @@ async function build(spec: TinyModel, onProgress: ProgressHandler): Promise<Prob
   const { AutoModelForCausalLM, AutoTokenizer, Tensor, env } = await import('@huggingface/transformers');
 
   // Point transformers.js at GitHub Releases instead of HF Hub.
-  // Release assets are flat files under releases/download/{tag}/{filename}.
-  // transformers.js constructs: {remoteHost}{pathTemplate}{filename}
+  // Release assets are flat (no subdirectories), but transformers.js
+  // requests ONNX files under onnx/. We intercept fetch to strip that prefix.
   env.remoteHost = GH_RELEASE_BASE;
   env.remotePathTemplate = '{model}/';
   env.allowLocalModels = false;
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = (input, init) => {
+    if (typeof input === 'string' && input.startsWith(GH_RELEASE_BASE)) {
+      input = input.replace('/onnx/', '/');
+    }
+    return origFetch(input, init);
+  };
 
   const progress = (info: ProgressInfo) => {
     if (info.status === 'progress' && info.file?.endsWith('.onnx') && info.progress !== undefined) {
